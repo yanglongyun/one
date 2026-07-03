@@ -1,0 +1,117 @@
+/* 待办种子小应用 —— 晴空软糖(iframe 隔离,token 内联,与笔记一致) */
+:root {
+    --ink: #22354e; --ink2: #54688a; --ink-3: #8ba1bb; --ink-4: #aebfd4;
+    --candy: #3b9bf5; --candy-deep: #2b86e4; --candy-soft: #e2f0fe;
+    --candy-ring: rgba(59,155,245,.22);
+    --well: #f2f7fd; --line-soft: rgba(140,170,205,.14);
+    --bad: #ee5d68; --bad-soft: #fde9eb;
+    --paper-yellow: #fff6d9; --paper-yellow-deep: #eab308;
+    --paper-blue: #e3f0fe; --paper-blue-deep: #3b9bf5;
+    --paper-green: #e0f6ea; --paper-green-deep: #26b573;
+    --paper-pink: #fde9f0; --paper-pink-deep: #ec6a9c;
+    --paper-plain: #ffffff; --paper-plain-deep: #8ba1bb;
+    --shadow-s: 0 1px 2px rgba(48,88,140,.06), 0 3px 10px -2px rgba(48,88,140,.08);
+    --shadow-m: 0 2px 4px rgba(48,88,140,.05), 0 12px 28px -8px rgba(48,88,140,.14);
+    --shadow-l: 0 4px 8px rgba(48,88,140,.06), 0 24px 56px -12px rgba(48,88,140,.22);
+    --gloss: inset 0 1.5px 0 rgba(255,255,255,.5);
+    --r-l: 22px;
+    --spring: cubic-bezier(.34,1.3,.5,1);
+    --ease: cubic-bezier(.25,.6,.3,1);
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro SC", "PingFang SC", "Helvetica Neue", "Noto Sans SC", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+    margin: 0; font-family: var(--sans); font-size: 14px; color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    background: linear-gradient(180deg, #d5eafd 0%, #e9f4fe 34%, #f7fbff 78%);
+    background-attachment: fixed;
+}
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+input { font: inherit; color: var(--ink); }
+
+
+.i-plus { width: 20px; height: 20px; position: relative; display: inline-block; }
+.i-plus::before, .i-plus::after { content: ""; position: absolute; background: currentColor; border-radius: 2px; }
+.i-plus::before { left: 9px; top: 3px; width: 2px; height: 14px; }
+.i-plus::after { top: 9px; left: 3px; height: 2px; width: 14px; }
+
+.page { padding: 20px 20px 96px; }
+.page-inner { max-width: 640px; margin: 0 auto; }
+
+/* 顶部常驻录入框 —— 糖果纸质感,回车即加 */
+.quick { display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
+    background: #fff; border: 1px solid rgba(255,255,255,.65); border-radius: var(--r-l);
+    box-shadow: var(--shadow-s); padding: 4px 16px 4px 15px; transition: box-shadow .15s var(--ease); }
+.quick:focus-within { box-shadow: var(--shadow-m), 0 0 0 3px var(--candy-ring); }
+.quick-dot { font-size: 16px; line-height: 1; flex-shrink: 0; }
+.quick-input { flex: 1; border: 0; outline: 0; background: none; padding: 13px 0; font-size: 14px; }
+.quick-input::placeholder { color: var(--ink-4); }
+
+/* 分组 */
+.section { margin-bottom: 20px; }
+.section-head { display: flex; align-items: center; gap: 8px; padding: 0 6px 8px; }
+.section-title { font-size: 12px; font-weight: 800; letter-spacing: .04em; color: var(--ink2); text-transform: uppercase; }
+.section-count { font-size: 11px; font-weight: 700; color: var(--ink-3); background: var(--well);
+    border-radius: 99px; padding: 2px 9px; min-width: 22px; text-align: center; }
+
+/* 列表行 —— 每行一张软糖便签 */
+.list { display: flex; flex-direction: column; gap: 8px; }
+.item { display: flex; align-items: center; gap: 12px; position: relative;
+    background: var(--paper-plain); border-radius: 16px; border: 1px solid rgba(255,255,255,.65);
+    box-shadow: var(--shadow-s); padding: 13px 14px;
+    transition: transform .18s var(--spring), box-shadow .18s var(--ease); }
+.item:hover { transform: translateY(-1px); box-shadow: var(--shadow-m); }
+
+/* 圆形复选框 */
+.check { width: 22px; height: 22px; border-radius: 99px; flex-shrink: 0; cursor: pointer;
+    border: 2px solid var(--ink-4); background: #fff; display: grid; place-items: center;
+    color: #fff; font-size: 12px; transition: all .18s var(--spring); }
+.check:hover { border-color: var(--candy); transform: scale(1.1); }
+.check.on { border-color: var(--paper-green-deep);
+    background: linear-gradient(160deg, #4fd08c, var(--paper-green-deep)); }
+.check.on::after { content: "✓"; font-weight: 900; }
+
+.item-text { flex: 1; font-size: 14px; line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
+.item.done .item-text { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--ink-4); }
+
+.item-trash { width: 28px; height: 28px; border-radius: 9px; flex-shrink: 0; display: grid; place-items: center;
+    color: var(--ink-3); font-size: 13px; opacity: 0; transition: opacity .15s, background .15s, color .15s; }
+.item:hover .item-trash { opacity: 1; }
+.item-trash:hover { background: var(--bad-soft); color: var(--bad); }
+
+/* AI 拆解按钮 + 子步骤 */
+.item-split { width: 28px; height: 28px; border-radius: 9px; flex-shrink: 0; display: grid; place-items: center;
+    font-size: 13px; opacity: 0; transition: opacity .15s, background .15s, transform .15s var(--spring); }
+.item:hover .item-split { opacity: 1; }
+.item-split:hover { background: var(--candy-soft); transform: scale(1.08); }
+.item-split.busy { opacity: 1; animation: split-spin 1.1s linear infinite; pointer-events: none; }
+@keyframes split-spin { to { transform: rotate(360deg); } }
+.sub-count { flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--candy-deep);
+    background: var(--candy-soft); border-radius: 99px; padding: 2px 8px; }
+.sub-list { display: flex; flex-direction: column; gap: 6px; margin: -2px 0 2px 26px; }
+.item.sub { padding: 9px 12px; border-radius: 13px; background: rgba(255,255,255,.72); box-shadow: none;
+    border: 1px solid var(--line-soft); }
+.item.sub:hover { transform: none; box-shadow: var(--shadow-s); }
+.item.sub .check { width: 19px; height: 19px; font-size: 10px; }
+.item.sub .item-text { font-size: 13px; }
+
+.todo-empty { padding: 40px 20px 56px; text-align: center; }
+.todo-empty .e-icon { font-size: 34px; margin-bottom: 8px; }
+.todo-empty .e-title { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+.todo-empty .e-sub { font-size: 13px; line-height: 1.7; color: var(--ink-3); }
+
+@media (max-width: 640px) { .page { padding: 16px 12px 96px; } }
+@media (hover: none), (max-width: 640px) { .item-trash, .item-split { opacity: .55; } }
+
+/* 浮动新建按钮(小应用无顶栏,动作走 FAB)*/
+.fab {
+    position: fixed; right: 20px; bottom: 20px; z-index: 30;
+    width: 52px; height: 52px; border-radius: 99px;
+    display: grid; place-items: center; color: #fff;
+    background: linear-gradient(160deg, #58aef8, var(--candy-deep));
+    box-shadow: var(--gloss), 0 8px 20px -4px rgba(43,134,228,.6);
+    transition: transform .18s var(--spring), filter .15s;
+}
+.fab:hover { filter: brightness(1.05); transform: translateY(-2px); }
+.fab:active { transform: scale(.94); }

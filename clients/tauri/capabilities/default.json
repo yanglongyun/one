@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "本地设置页(main/settings)与远端 worker 网页均可走 IPC(调用自定义 command,如 open_settings)。",
+  "windows": ["main", "settings"],
+  "local": true,
+  "remote": {
+    "urls": ["https://**", "http://**"]
+  },
+  "permissions": ["core:default"]
+}

@@ -1,0 +1,45 @@
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
+import { useWsStore } from '@/system/stores/ws';
+import { api } from '@/system/api';
+
+// 任务列表:结果卡片,不是聊天。REST 拉初始列表,WS 的 task.created/task.updated 实时刷新状态
+// (pending → running → done/failed/aborted),不用手动轮询。
+export const useTasksStore = defineStore('tasks', () => {
+    const ws = useWsStore();
+    const items = ref([]);
+    const loading = ref(false);
+    const statusFilter = ref('');
+
+    let bound = false;
+    function bind() {
+        if (bound) return;
+        bound = true;
+        ws.onMessage('task.created', (m) => {
+            if (m.task) items.value.unshift(m.task);
+        });
+        ws.onMessage('task.updated', (m) => {
+            const t = m.task;
+            if (!t) return;
+            const row = items.value.find((x) => x.id === t.id);
+            if (row) Object.assign(row, t);
+        });
+    }
+
+    async function load(status = statusFilter.value) {
+        statusFilter.value = status || '';
+        loading.value = true;
+        try {
+            const q = statusFilter.value ? `?status=${encodeURIComponent(statusFilter.value)}` : '';
+            const res = await api.get(`/api/tasks${q}`);
+            items.value = res.tasks || [];
+        } finally { loading.value = false; }
+    }
+
+    async function remove(id) {
+        await api.del(`/api/tasks/${id}`);
+        items.value = items.value.filter((t) => t.id !== id);
+    }
+
+    return { items, loading, statusFilter, bind, load, remove };
+});

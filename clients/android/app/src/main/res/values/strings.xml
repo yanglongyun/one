@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">one</string>
+    <string name="accessibility_desc">one 的「手」——允许后让云端 AI 在本机点击、输入。</string>
+</resources>

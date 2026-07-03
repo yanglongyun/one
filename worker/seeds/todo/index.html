@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>待办</title>
+<link rel="stylesheet" href="./index.css">
+</head>
+<body>
+    <main class="page">
+        <div class="page-inner">
+            <!-- 常驻输入框:待办以「快速录入」为主,顶部回车即加比逐条开弹窗更顺手。FAB 只负责把焦点拉回这里。 -->
+            <div class="quick">
+                <span class="quick-dot">⭕</span>
+                <input id="q-input" class="quick-input" type="text" placeholder="添加一项待办,回车保存…" autocomplete="off">
+            </div>
+
+            <div id="empty" class="todo-empty" style="display:none">
+                <div class="e-icon">🌤️</div>
+                <div class="e-title">还没有待办</div>
+                <div class="e-sub">在上面输入点什么 —— 记下要做的事,点条目上的 ✨ 还能让 AI 帮你拆成小步骤</div>
+            </div>
+
+            <section id="sec-active" class="section" style="display:none">
+                <div class="section-head"><span class="section-title">进行中</span><span class="section-count" id="c-active">0</span></div>
+                <div id="list-active" class="list"></div>
+            </section>
+
+            <section id="sec-done" class="section" style="display:none">
+                <div class="section-head"><span class="section-title">已完成</span><span class="section-count" id="c-done">0</span></div>
+                <div id="list-done" class="list"></div>
+            </section>
+        </div>
+    </main>
+
+    <button class="fab" id="btn-new" title="添加待办"><span class="i-plus"></span></button>
+
+    <script src="./index.js"></script>
+</body>
+</html>

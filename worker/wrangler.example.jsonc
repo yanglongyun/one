@@ -1,0 +1,73 @@
+/**
+ * 复制这份文件到 `wrangler.jsonc`,按注释逐项改成你自己的值。
+ * `wrangler.jsonc` 已 gitignore,所有机密只留在本地。
+ *
+ * 需要准备:
+ *   1) Cloudflare account_id
+ *        npx wrangler whoami
+ *   2) D1 数据库(账户/对话/设置都落这里):
+ *        npx wrangler d1 create one
+ *        把输出的 database_id 填到下面 d1_databases[0].database_id
+ *        建表: npx wrangler d1 execute one --remote --file=schema.sql
+ *   3) 鉴权密钥(JWT 签名):
+ *        npx wrangler secret put AUTH_SECRET   # 如 openssl rand -hex 32
+ *   4) (可选)绑自己的域名 — 先把域名托管进 Cloudflare,再填 routes;
+ *        不绑就把整个 "routes" 段删掉,Worker 会自动给一个
+ *        one.<your-subdomain>.workers.dev 的测试地址。
+ *
+ * Worker = 账户 + 大脑 + 数据:DO(OneHub) 做实时中继 + AI agent,D1 存所有云端数据。
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "one",
+	"account_id": "<YOUR_CLOUDFLARE_ACCOUNT_ID>",
+	"main": "server/index.js",
+	"compatibility_date": "2025-09-12",
+	"assets": {
+		"directory": "ui/dist",
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": ["/api/*"]
+	},
+	"durable_objects": {
+		"bindings": [
+			{
+				"class_name": "OneHub",
+				"name": "HUB"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": ["OneHub"]
+		}
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "one",
+			"database_id": "<YOUR_D1_DATABASE_ID>"
+		}
+	],
+	"observability": {
+		"enabled": true
+	},
+	// 日程(定时任务)靠这个:每分钟触发一次 scheduled handler,扫 schedules 表到期项。
+	"triggers": {
+		"crons": ["* * * * *"]
+	},
+
+	// 不绑自定义域名就把整个 "routes" 段删掉,Cloudflare 会自动给
+	// one.<your-subdomain>.workers.dev 的测试地址。
+	// 要绑自己的域名(如 one.example.com):
+	//   1) 先在 Cloudflare 控制台 → Websites 把域名托管进来
+	//   2) 下面 pattern 换成要绑的域名
+	//   3) npm run deploy 之后 Cloudflare 会自动配 DNS + 证书
+	"routes": [
+		{
+			"pattern": "<YOUR_DOMAIN>",
+			"custom_domain": true
+		}
+	]
+}

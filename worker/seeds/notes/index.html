@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>笔记</title>
+<link rel="stylesheet" href="./index.css">
+</head>
+<body>
+    <main class="page">
+        <div class="page-inner">
+            <div id="empty" class="notes-empty" style="display:none">
+                <div class="e-icon">📝</div>
+                <div class="e-title">还没有笔记</div>
+                <div class="e-sub">随手记点什么 —— 灵感、清单、AI 帮你整理的内容都放这</div>
+            </div>
+            <div id="board" class="board"></div>
+        </div>
+    </main>
+
+    <button class="fab" id="btn-new" title="新建笔记"><span class="i-plus"></span></button>
+
+    <!-- 新建 / 编辑 -->
+    <div id="modal" class="modal-mask" style="display:none">
+        <div class="modal">
+            <div class="modal-title" id="modal-title">新建笔记</div>
+            <div class="field">
+                <label>正文 <span class="hint">第一行会当作标题</span></label>
+                <textarea id="f-content" class="input" rows="5" placeholder="写点什么…"></textarea>
+            </div>
+            <div class="field" style="margin-top:12px">
+                <label>颜色</label>
+                <div class="row" id="f-colors" style="gap:10px"></div>
+            </div>
+            <div class="pin-row">
+                <span>置顶 <span class="hint">排在最前面</span></span>
+                <button type="button" class="toggle blue" id="f-pin" aria-label="置顶"></button>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-plain" id="btn-cancel">取消</button>
+                <button class="btn btn-primary" id="btn-save">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./index.js"></script>
+</body>
+</html>

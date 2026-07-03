@@ -1,0 +1,18 @@
+{
+    "name": "one-worker",
+    "version": "0.2.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build:ui": "npm --prefix ui run build",
+        "seed:build": "node seeds/build.mjs",
+        "dev": "wrangler dev --port 9506",
+        "predeploy": "npm run build:ui",
+        "deploy": "wrangler deploy",
+        "start": "wrangler dev --port 9506",
+        "db:backup": "wrangler d1 export one --remote --output=backup-$(date +%Y%m%d-%H%M).sql"
+    },
+    "devDependencies": {
+        "wrangler": "^4.35.0"
+    }
+}

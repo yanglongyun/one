@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>启示</title>
+<link rel="stylesheet" href="./index.css">
+</head>
+<body>
+    <main class="page">
+        <div class="page-inner">
+            <div class="hero">
+                <div class="hero-eyebrow">💡 今日启示</div>
+                <div class="hero-date" id="today-date"></div>
+            </div>
+
+            <!-- 今日卡:根据状态切换内容 -->
+            <div id="today" class="today-card">
+                <!-- JS 填充 -->
+            </div>
+
+            <!-- 历史 -->
+            <div id="history-wrap" class="history" style="display:none">
+                <div class="history-title">过往启示</div>
+                <div id="history-list" class="history-list"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="./index.js"></script>
+</body>
+</html>

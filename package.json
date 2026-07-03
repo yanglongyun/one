@@ -1,0 +1,12 @@
+{
+  "name": "one",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "云核 AI 助手 —— worker(云)+ clients(壳和手)",
+  "scripts": {
+    "dev:worker": "npm --prefix worker run dev",
+    "deploy": "npm --prefix worker run deploy",
+    "tauri:build": "npm --prefix clients/tauri run tauri:build"
+  }
+}

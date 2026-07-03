@@ -1,0 +1,27 @@
+# deps
+node_modules/
+**/node_modules/
+
+# build output
+worker/ui/dist/
+clients/tauri/target/
+clients/tauri/gen/
+clients/android/build/
+clients/android/app/build/
+clients/android/.gradle/
+clients/android/local.properties
+artifacts/
+
+# secrets / local config(机密只留本地)
+worker/wrangler.jsonc
+worker/backup-*.sql
+.dev.vars
+.env
+*.log
+
+# local runtime
+data/
+
+# macOS
+.DS_Store
+**/.DS_Store

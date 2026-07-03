@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>恋爱</title>
+<link rel="stylesheet" href="./index.css">
+</head>
+<body>
+    <!-- 聊天区 -->
+    <main class="chat" id="chat">
+        <div class="chat-inner" id="stream"></div>
+    </main>
+
+    <!-- 输入区 -->
+    <div class="composer-wrap">
+        <div class="composer">
+            <textarea id="input" rows="1" placeholder="和 TA 说点什么…"></textarea>
+            <button class="send" id="send" title="发送"><span class="i-send"></span></button>
+        </div>
+    </div>
+
+    <!-- 首次设定 TA:两位预置角色,二选一即开聊 -->
+    <div id="setup" class="modal-mask" style="display:none">
+        <div class="modal">
+            <div class="setup-heart">💕</div>
+            <div class="modal-title" style="text-align:center">选一个 TA</div>
+            <div class="setup-sub">两位都在等你,点一下就开始聊。</div>
+            <div class="pick" id="pick"></div>
+        </div>
+    </div>
+
+    <script src="./index.js"></script>
+</body>
+</html>

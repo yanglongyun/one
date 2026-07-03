@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>one · 连接设置</title>
+<style>
+  /* 晴空软糖 —— 自包含 token */
+  :root {
+    --sky-top: #d5eafd; --sky-mid: #e9f4fe; --sky-low: #f7fbff;
+    --ink: #22354e; --ink2: #54688a; --ink-3: #8ba1bb; --ink-4: #aebfd4;
+    --candy: #3b9bf5; --candy-deep: #2b86e4;
+    --candy-soft: #e2f0fe; --candy-ring: rgba(59, 155, 245, .22);
+    --ok: #26b573; --ok-soft: #dff5e9;
+    --wait: #7a8ba3; --wait-soft: #edf2f8;
+    --bad: #ee5d68;
+    --panel: #ffffff; --well: #f2f7fd;
+    --line: rgba(140, 170, 205, .22); --line-soft: rgba(140, 170, 205, .14);
+    --shadow-l: 0 4px 8px rgba(48, 88, 140, .06), 0 24px 56px -12px rgba(48, 88, 140, .22);
+    --shadow-s: 0 1px 2px rgba(48, 88, 140, .06), 0 3px 10px -2px rgba(48, 88, 140, .08);
+    --gloss: inset 0 1.5px 0 rgba(255, 255, 255, .5);
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro SC", "PingFang SC", "Helvetica Neue", "Noto Sans SC", "Microsoft YaHei UI", sans-serif;
+    --spring: cubic-bezier(.34, 1.3, .5, 1);
+    --ease: cubic-bezier(.25, .6, .3, 1);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    display: grid; place-items: center; padding: 20px;
+    font-family: var(--sans); font-size: 14px; color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    user-select: none; -webkit-user-select: none;
+    background:
+      radial-gradient(1100px 480px at 18% -8%, rgba(255,255,255,.65), transparent 60%),
+      radial-gradient(900px 420px at 88% -6%, rgba(190,225,255,.55), transparent 55%),
+      linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 34%, var(--sky-low) 78%);
+  }
+  ::selection { background: var(--candy-ring); }
+
+  .card {
+    width: 372px; max-width: 100%;
+    padding: 30px 28px 24px;
+    background: var(--panel);
+    border-radius: 24px;
+    box-shadow: var(--shadow-l);
+    animation: rise .55s var(--spring) both;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(16px) scale(.97); } to { opacity: 1; transform: none; } }
+
+  .head { text-align: center; }
+  .brand {
+    width: 56px; height: 56px; border-radius: 18px;
+    margin: 0 auto 12px;
+    display: grid; place-items: center;
+    background: linear-gradient(150deg, #62b4fa, var(--candy-deep));
+    color: #fff; font-weight: 800; font-size: 26px;
+    box-shadow: var(--gloss), 0 8px 20px -4px rgba(43, 134, 228, .5);
+  }
+  .title { font-size: 20px; font-weight: 800; letter-spacing: .01em; }
+  .sub { margin-top: 4px; font-size: 13px; color: var(--ink-3); font-weight: 500; }
+
+  .field {
+    width: 100%; height: 46px; margin-top: 12px; padding: 0 15px;
+    border: 1px solid var(--line); border-radius: 13px;
+    background: var(--well); color: var(--ink);
+    font: inherit; font-size: 13.5px; outline: none;
+    transition: border-color .15s, box-shadow .18s var(--ease), background .15s;
+  }
+  .field:first-of-type { margin-top: 20px; }
+  .field::placeholder { color: var(--ink-4); }
+  .field:focus { background: #fff; border-color: var(--candy); box-shadow: 0 0 0 3.5px var(--candy-ring); }
+
+  .btn {
+    width: 100%; height: 46px; margin-top: 16px;
+    border: 0; border-radius: 14px; cursor: pointer;
+    font: inherit; font-size: 14px; font-weight: 700; color: #fff;
+    background: linear-gradient(150deg, #62b4fa, var(--candy-deep));
+    box-shadow: var(--gloss), 0 10px 22px -6px rgba(43, 134, 228, .55);
+    transition: transform .18s var(--spring), box-shadow .18s var(--ease), filter .15s;
+  }
+  .btn:hover { filter: brightness(1.04); transform: translateY(-1px); }
+  .btn:active { transform: translateY(1px); }
+  .msg { margin-top: 10px; min-height: 16px; text-align: center; font-size: 12px; color: var(--bad); font-weight: 500; }
+  .msg.ok { color: var(--ok); }
+
+  .rows { margin-top: 8px; border-top: 1px solid var(--line-soft); }
+  .row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 2px; border-bottom: 1px solid var(--line-soft);
+    font-size: 13px; font-weight: 500;
+  }
+  .row:last-child { border-bottom: 0; }
+  .row .grow { flex: 1; }
+  .row .label { color: var(--ink2); }
+  .row .cap { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+  .sect { padding: 14px 2px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--ink-3); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 99px;
+    font-size: 11.5px; font-weight: 700;
+  }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.no { background: var(--wait-soft); color: var(--wait); }
+  .dot { width: 7px; height: 7px; border-radius: 99px; background: currentColor; }
+  .dot.live { box-shadow: 0 0 0 3px var(--ok-soft); }
+
+  .grant {
+    border: 0; border-radius: 9px; padding: 5px 11px; cursor: pointer;
+    font: inherit; font-size: 12px; font-weight: 700; color: #fff;
+    background: linear-gradient(150deg, #62b4fa, var(--candy-deep));
+    box-shadow: var(--gloss), 0 4px 10px -2px rgba(43, 134, 228, .45);
+    transition: transform .18s var(--spring), filter .15s;
+  }
+  .grant:hover { filter: brightness(1.05); transform: translateY(-1px); }
+  .grant:active { transform: translateY(1px); }
+
+  /* 软糖开关 */
+  .switch { position: relative; width: 44px; height: 26px; flex: none; cursor: pointer; }
+  .switch input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .switch .track {
+    position: absolute; inset: 0; border-radius: 99px;
+    background: var(--ink-4); box-shadow: inset 0 1px 3px rgba(48,88,140,.2);
+    transition: background .2s var(--ease);
+  }
+  .switch .knob {
+    position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 99px;
+    background: #fff; box-shadow: 0 1px 3px rgba(48,88,140,.35), var(--gloss);
+    transition: transform .22s var(--spring);
+  }
+  .switch input:checked + .track { background: linear-gradient(150deg, #62b4fa, var(--candy-deep)); }
+  .switch input:checked ~ .knob { transform: translateX(18px); }
+</style>
+</head>
+<body>
+  <div class="card" id="card" style="display:none">
+    <div class="head">
+      <div class="brand">1</div>
+      <div class="title">one</div>
+      <div class="sub">连接到你的云端</div>
+    </div>
+
+    <input class="field" id="worker" placeholder="主域名 https://your-worker.example.com" spellcheck="false" autocapitalize="off" autocorrect="off" />
+    <input class="field" id="password" type="password" placeholder="访问密码" />
+    <input class="field" id="name" placeholder="设备名(唯一,如 air)" spellcheck="false" autocapitalize="off" autocorrect="off" />
+    <button class="btn" id="btn">连接</button>
+    <div class="msg" id="msg"></div>
+
+    <div class="rows">
+      <div class="row">
+        <span class="label">连接状态</span>
+        <span class="grow"></span>
+        <span class="pill no" id="conn"><span class="dot"></span>离线</span>
+      </div>
+      <div class="row">
+        <span>
+          <div class="label">开机自启</div>
+          <div class="cap">登录系统后自动在托盘待命</div>
+        </span>
+        <span class="grow"></span>
+        <label class="switch">
+          <input type="checkbox" id="autostart" />
+          <span class="track"></span>
+          <span class="knob"></span>
+        </label>
+      </div>
+    </div>
+
+    <div id="perms" style="display:none">
+      <div class="sect">MACOS 权限 · 电脑控制 / 截屏需要</div>
+      <div class="rows" style="border-top:0">
+        <div class="row"><span class="label">辅助功能</span><span class="grow"></span><span id="p-ax"></span></div>
+        <div class="row"><span class="label">屏幕录制</span><span class="grow"></span><span id="p-sc"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    // 非 Tauri 环境(浏览器直接打开)也能看到界面,invoke 走空实现
+    const invoke = window.__TAURI__
+      ? window.__TAURI__.core.invoke
+      : async () => ({ supported: false });
+    // 当前窗口是主窗口(首启配置)还是独立设置窗口("settings")
+    let label = 'main';
+    try { label = window.__TAURI__.webviewWindow.getCurrentWebviewWindow().label; } catch (e) {}
+
+    const go = (worker, password) => {
+      const base = worker.trim().replace(/\/+$/, '');
+      // 带上密码让网页自动登录(hash 不会发给服务器,读完即清)
+      location.href = base + '/#auth=' + encodeURIComponent(password || '');
+    };
+
+    async function boot() {
+      const s = await invoke('app_state');
+      // 主窗口且已配置:直接进 worker;设置窗口永远显示表单
+      if (s.configured && label !== 'settings') { go(s.worker, s.password); return; }
+      $('worker').value = s.worker || '';
+      $('name').value = s.name || '';
+      $('autostart').checked = !!s.autostart;
+      $('card').style.display = 'block';
+      renderConn(!!s.connected);
+      refreshPerms();
+      setInterval(pollConn, 3000);
+    }
+
+    function renderConn(on) {
+      const el = $('conn');
+      el.className = 'pill ' + (on ? 'ok' : 'no');
+      el.innerHTML = '<span class="dot' + (on ? ' live' : '') + '"></span>' + (on ? '在线' : '离线');
+    }
+    async function pollConn() {
+      try { renderConn(!!(await invoke('app_state')).connected); } catch (e) {}
+    }
+
+    async function refreshPerms() {
+      try {
+        const p = await invoke('mac_permissions');
+        if (!p.supported) return;
+        $('perms').style.display = 'block';
+        const cell = (id, granted, pane) => {
+          const el = $(id);
+          el.innerHTML = granted
+            ? '<span class="pill ok"><span class="dot"></span>已授权</span>'
+            : '<button class="grant">去授权</button>';
+          const b = el.querySelector('button');
+          if (b) b.onclick = async () => { await invoke('open_privacy_settings', { pane }); setTimeout(refreshPerms, 3000); };
+        };
+        cell('p-ax', p.accessibility, 'accessibility');
+        cell('p-sc', p.screenRecording, 'screen');
+      } catch (e) { /* 非 tauri 环境或旧版:忽略 */ }
+    }
+
+    $('autostart').onchange = async (e) => {
+      try { await invoke('set_autostart', { enabled: e.target.checked }); } catch (err) {}
+    };
+
+    $('btn').onclick = async () => {
+      const worker = $('worker').value.trim();
+      const password = $('password').value;
+      const name = $('name').value.trim();
+      const msg = $('msg');
+      msg.className = 'msg';
+      if (!worker) { msg.textContent = '请填主域名'; return; }
+      if (!name) { msg.textContent = '请给这台设备起个唯一的名字'; return; }
+      // save_creds 会让主窗口(重新)加载新的 worker 地址
+      await invoke('save_creds', { worker, password, name });
+      if (label === 'settings') {
+        msg.className = 'msg ok';
+        msg.textContent = '已保存,主窗口正在连接新地址';
+      }
+      // 主窗口:由 Rust 侧 navigate,无需前端跳转
+    };
+    boot();
+  </script>
+</body>
+</html>
