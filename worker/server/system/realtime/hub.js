@@ -5,7 +5,7 @@
 //   ?role=web      网页端:发聊天、收流式;终端/屏幕等设备消息的转发对端
 //   ?role=device   这台设备:收工具/转发请求,回结果
 //
-// 消息协议:事件即类型(app.xxx,无 kind),见 .docs/one/事件列表.md。
+// 消息协议:事件即类型(app.xxx,无 kind)。完整事件流见下方 web ↔ DO ↔ 设备 的注释。
 //   web → DO:    { type:'chat.input', threadId, text } / { type:'chat.abort', threadId }  其余转发给设备
 //   DO → web:    chat.start / chat.delta / chat.tool.calls / chat.tool.result / chat.done …;另有 device.presence / task.created / task.updated
 //   DO → web+设备: { type:'chat.tool.calls', threadId, calls } 各端执行层自捕获归属自己的工具

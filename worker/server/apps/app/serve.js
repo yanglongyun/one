@@ -8,6 +8,12 @@ import * as repo from './repository.js';
 
 const TYPES = { 'index.html': 'text/html; charset=utf-8', 'index.js': 'text/javascript; charset=utf-8', 'index.css': 'text/css; charset=utf-8' };
 
+// 只允许同源(主 SPA)把应用装进 iframe,挡掉外站框套 → 防点击劫持。
+const FRAME_GUARD = { 'X-Frame-Options': 'SAMEORIGIN' };
+
+const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 export async function serveApp(db, pathname) {
     const parts = pathname.split('/').filter(Boolean); // ['api', 'apps', slug, 'runtime', file?]
     const slug = parts[2];
@@ -18,12 +24,12 @@ export async function serveApp(db, pathname) {
     if (!app) return new Response('app not found', { status: 404 });
     const row = await repo.latestFile(db, app.id, file);
     if (!row) return new Response(file === 'index.html' ? emptyShell(app) : '', {
-        headers: { 'Content-Type': TYPES[file], 'Cache-Control': 'no-cache' },
+        headers: { 'Content-Type': TYPES[file], 'Cache-Control': 'no-cache', ...FRAME_GUARD },
     });
 
     let content = row.content;
     if (file === 'index.html') content = injectSdk(injectBase(content, slug));
-    return new Response(content, { headers: { 'Content-Type': TYPES[file], 'Cache-Control': 'no-cache' } });
+    return new Response(content, { headers: { 'Content-Type': TYPES[file], 'Cache-Control': 'no-cache', ...FRAME_GUARD } });
 }
 
 // 注入 <base>:无论访问 runtime 还是 runtime/,相对引用(./index.css)都解析到应用目录下
@@ -43,9 +49,10 @@ function injectSdk(html) {
 }
 
 function emptyShell(app) {
-    return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${app.name}</title></head>
+    const name = escapeHtml(app.name);
+    return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${name}</title></head>
 <body style="font-family:system-ui;display:grid;place-items:center;height:100vh;margin:0;color:#54688a">
-<div>「${app.name}」还没有界面 —— 让 one 用 app_update 写入 index.html。</div></body></html>`;
+<div>「${name}」还没有界面 —— 让 one 用 app_update 写入 index.html。</div></body></html>`;
 }
 
 // window.one —— 应用前端的全部能力面。

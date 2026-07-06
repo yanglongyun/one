@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { login } from '@/system/api';
 import { useWsStore } from '@/system/stores/ws';
@@ -10,6 +10,8 @@ const password = ref('');
 const error = ref('');
 const busy = ref(false);
 
+// 注:桌面/安卓壳带来的 #auth=<密码> 自动登录在 main.js 里更早处理(赶在路由抹掉 hash 之前),
+// 所以这里只管手动输入这条路径。
 async function onSubmit() {
     if (busy.value) return;
     busy.value = true;
@@ -24,16 +26,6 @@ async function onSubmit() {
         busy.value = false;
     }
 }
-
-// 桌面/安卓原生设置页跳转过来时带 #auth=<密码> → 自动登录(读完即清掉 hash)。
-onMounted(() => {
-    const m = location.hash.match(/auth=([^&]+)/);
-    if (m) {
-        history.replaceState(null, '', location.pathname + location.search);
-        password.value = decodeURIComponent(m[1]);
-        onSubmit();
-    }
-});
 </script>
 
 <template>

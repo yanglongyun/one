@@ -21,6 +21,46 @@ export async function sha256(text) {
     return toHex(await crypto.subtle.digest('SHA-256', enc.encode(String(text))));
 }
 
+// 常量时间字符串比较:避免用 !== 比对密钥/哈希时的计时侧信道。
+export function timingSafeEqual(a, b) {
+    const sa = String(a), sb = String(b);
+    if (sa.length !== sb.length) return false;
+    let diff = 0;
+    for (let i = 0; i < sa.length; i++) diff |= sa.charCodeAt(i) ^ sb.charCodeAt(i);
+    return diff === 0;
+}
+
+// ── 访问口令哈希:PBKDF2-HMAC-SHA256 + 随机盐(慢哈希,抗离线爆破)──
+// 存储格式:pbkdf2$<iterations>$<saltB64url>$<hashB64url>,自描述、可平滑升级参数。
+const PBKDF2_ITERS = 100_000;
+
+async function pbkdf2(password, salt, iterations) {
+    const key = await crypto.subtle.importKey('raw', enc.encode(String(password)), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, key, 256);
+    return new Uint8Array(bits);
+}
+
+export async function hashPassword(password) {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const hash = await pbkdf2(password, salt, PBKDF2_ITERS);
+    return `pbkdf2$${PBKDF2_ITERS}$${b64url(salt)}$${b64url(hash)}`;
+}
+
+// 校验口令是否匹配存储哈希。兼容历史裸 SHA-256(64 位 hex)记录,便于旧部署平滑过渡。
+export async function verifyPasswordHash(password, stored) {
+    const s = String(stored || '');
+    if (s.startsWith('pbkdf2$')) {
+        const [, iterStr, saltB64, hashB64] = s.split('$');
+        const iterations = Number(iterStr) || PBKDF2_ITERS;
+        const salt = b64urlDecode(saltB64);
+        const hash = await pbkdf2(password, salt, iterations);
+        return timingSafeEqual(b64url(hash), hashB64);
+    }
+    // 兼容旧格式(裸 SHA-256 hex)
+    if (/^[0-9a-f]{64}$/i.test(s)) return timingSafeEqual(await sha256(password), s);
+    return false;
+}
+
 async function hmac(data, secret) {
     const key = await crypto.subtle.importKey('raw', enc.encode(String(secret)), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     return b64url(await crypto.subtle.sign('HMAC', key, enc.encode(data)));
@@ -41,7 +81,7 @@ export async function signJwt(payload, secret, { expSec = DEFAULT_EXP } = {}) {
 export async function verifyJwt(token, secret) {
     const [head, body, sig] = String(token || '').split('.');
     if (!head || !body || !sig) return null;
-    if (sig !== await hmac(`${head}.${body}`, secret)) return null;
+    if (!timingSafeEqual(sig, await hmac(`${head}.${body}`, secret))) return null;
     let payload; try { payload = decodeSegment(body); } catch { return null; }
     if (payload.exp && nowSec() > payload.exp) return null;
     return payload;

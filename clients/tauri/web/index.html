@@ -135,7 +135,7 @@
 <body>
   <div class="card" id="card" style="display:none">
     <div class="head">
-      <div class="brand">1</div>
+      <div class="brand"><svg width="34" height="34" viewBox="0 0 1024 1024" fill="#fff" aria-hidden="true"><circle cx="466" cy="466" r="142"/><circle cx="356" cy="524" r="96"/><circle cx="512" cy="418" r="88"/><circle cx="586" cy="504" r="110"/><circle cx="664" cy="546" r="78"/><circle cx="446" cy="596" r="86"/><circle cx="560" cy="606" r="76"/></svg></div>
       <div class="title">one</div>
       <div class="sub">连接到你的云端</div>
     </div>
@@ -146,7 +146,7 @@
     <button class="btn" id="btn">连接</button>
     <div class="msg" id="msg"></div>
 
-    <div class="rows">
+    <div class="rows" id="basics">
       <div class="row">
         <span class="label">连接状态</span>
         <span class="grow"></span>
@@ -199,9 +199,14 @@
       $('name').value = s.name || '';
       $('autostart').checked = !!s.autostart;
       $('card').style.display = 'block';
-      renderConn(!!s.connected);
-      refreshPerms();
-      setInterval(pollConn, 3000);
+      // 首连页只留「三项 + 连接」;状态灯 / 自启 / macOS 权限只在独立设置窗口里出现,减轻第一眼压力
+      if (label === 'settings') {
+        renderConn(!!s.connected);
+        refreshPerms();
+        setInterval(pollConn, 3000);
+      } else {
+        $('basics').style.display = 'none';
+      }
     }
 
     function renderConn(on) {
@@ -240,16 +245,32 @@
       const password = $('password').value;
       const name = $('name').value.trim();
       const msg = $('msg');
+      const btn = $('btn');
       msg.className = 'msg';
       if (!worker) { msg.textContent = '请填主域名'; return; }
       if (!name) { msg.textContent = '请给这台设备起个唯一的名字'; return; }
-      // save_creds 会让主窗口(重新)加载新的 worker 地址
-      await invoke('save_creds', { worker, password, name });
-      if (label === 'settings') {
+
+      // 点击即反馈:按钮进入连接中状态,防止重复点击
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = '连接中…';
+      msg.className = 'msg';
+      msg.textContent = '正在连接 ' + worker + ' …';
+
+      try {
+        // save_creds 会让主窗口(重新)加载新的 worker 地址
+        await invoke('save_creds', { worker, password, name });
         msg.className = 'msg ok';
-        msg.textContent = '已保存,主窗口正在连接新地址';
+        msg.textContent = label === 'settings' ? '已保存,主窗口正在连接新地址' : '已保存,正在打开云端…';
+        // 主窗口:由 Rust 侧 navigate,无需前端跳转
+      } catch (err) {
+        // 失败必须让用户看到原因,不能悄无声息
+        msg.className = 'msg err';
+        msg.textContent = '连接失败:' + (err?.message || err || '未知错误,请检查地址是否正确');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = original;
       }
-      // 主窗口:由 Rust 侧 navigate,无需前端跳转
     };
     boot();
   </script>

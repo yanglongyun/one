@@ -39,10 +39,10 @@ pub async fn run() {
 }
 
 async fn serve(cfg: &Config) -> Result<(), String> {
-    // https→wss / http→ws
+    // https→wss / http→ws / 无 scheme 的裸域名默认走 wss(与安卓端一致,避免明文传密码)
     let ws_base = match cfg.worker_url.strip_prefix("http") {
         Some(rest) => format!("ws{rest}"),
-        None => format!("ws://{}", cfg.worker_url),
+        None => format!("wss://{}", cfg.worker_url),
     };
     // 桌面手:密码 + role=device(密码即凭证)
     let url = format!("{ws_base}/api/realtime/ws?password={}&role=device", urlencode(&cfg.password));

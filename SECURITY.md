@@ -1,22 +1,42 @@
 # Security
 
-`one` is a personal AI agent system. A running deployment can control connected
-desktop, Android, or browser clients, so treat its credentials as real secrets.
+`one` is a single-user, self-hosted personal AI agent. A running deployment can
+control the desktop / Android / browser clients you connect to it, so treat its
+credentials as real secrets and only ever point clients at a deployment you own.
+
+## Trust model (read this before deploying publicly)
+
+- **Single user.** There are no accounts or per-user isolation. Anyone who holds
+  the access password (or a valid token) has the full power of the deployment.
+- **`AUTH_SECRET` is mandatory.** The worker refuses to sign or verify tokens
+  unless `AUTH_SECRET` is set (≥16 chars). Set it with
+  `npx wrangler secret put AUTH_SECRET` (e.g. `openssl rand -hex 32`); for local
+  dev put `AUTH_SECRET=...` in `worker/.dev.vars`.
+- **A password is required before use.** On a fresh deploy the worker issues no
+  tokens and accepts no device connections until you set an access password on
+  first open. This closes the "public URL, not yet locked down" window.
+- **Custom apps run with full privileges.** AI-generated / custom apps are served
+  same-origin and their SDK (`window.one`) can run arbitrary SQL and proxy
+  arbitrary outbound requests. A malicious or prompt-injected app can therefore
+  read and exfiltrate whatever the account can (including stored model API keys).
+  Only run apps you trust, and treat app code as part of your trusted computing
+  base.
 
 ## Secrets
 
 - Do not commit `worker/wrangler.jsonc`, `.dev.vars`, `.env`, database backups,
-  device passwords, API keys, or Cloudflare identifiers.
+  device passwords, API keys, or Cloudflare identifiers. These are gitignored.
 - Start from `worker/wrangler.example.jsonc` and keep the filled
   `worker/wrangler.jsonc` local.
-- Store production secrets with Cloudflare secrets, for example
+- Store production secrets with Cloudflare secrets, e.g.
   `npx wrangler secret put AUTH_SECRET`.
 
-## Browser and Device Access
+## Browser and device access
 
 The browser extension and device clients expose powerful automation capability.
-Only connect them to a deployment you control. Rotate the access password if it
-has been shared, logged, or committed by mistake.
+Clients connect over TLS (`wss://`) by default except for `localhost`. Only
+connect them to a deployment you control. Rotate the access password if it has
+been shared, logged, or committed by mistake.
 
 ## Reporting
 

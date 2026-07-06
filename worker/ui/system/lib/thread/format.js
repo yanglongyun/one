@@ -1,6 +1,25 @@
 import { marked } from 'marked';
 
-marked.setOptions({ breaks: true, gfm: true });
+// 净化渲染:聊天/任务正文来自模型、工具结果、被抓取的网页/文件 —— 属不可信内容,
+// 却经 v-html 渲染在持有 one_token 的主站源里。这里在 marked 层面掐断 XSS:
+//   · 丢弃 markdown 里的原始 HTML(<script>/<img onerror> 等一律不落地)
+//   · 中和 javascript:/data:/vbscript: 链接与图片地址
+// 正常 markdown 格式(粗体/列表/代码/普通链接)不受影响。
+const SAFE_RENDERER = new marked.Renderer();
+SAFE_RENDERER.html = () => '';
+const badUrl = (u) => /^\s*(javascript|data|vbscript):/i.test(String(u || ''));
+const baseLink = SAFE_RENDERER.link.bind(SAFE_RENDERER);
+SAFE_RENDERER.link = (token) => {
+    if (badUrl(token.href)) token.href = '#';
+    return baseLink(token);
+};
+const baseImage = SAFE_RENDERER.image.bind(SAFE_RENDERER);
+SAFE_RENDERER.image = (token) => {
+    if (badUrl(token.href)) token.href = '';
+    return baseImage(token);
+};
+
+marked.setOptions({ breaks: true, gfm: true, renderer: SAFE_RENDERER });
 
 // 与 worker/server/system/agent/tools.js 的工具集对齐(只暴露的那几个;未知名回退原名)。
 const TOOL_LABELS = {

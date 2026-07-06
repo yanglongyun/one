@@ -43,7 +43,11 @@ async function wsUrl() {
   const w = (worker || "").trim().replace(/\/+$/, "");
   if (!w) return "";
   const pw = (password || "").trim();
-  return `${w.replace(/^http/, "ws")}/api/realtime/ws?password=${encodeURIComponent(pw)}&role=browser`;
+  // 强制加密:除本机(localhost/127.0.0.1)外一律 wss://,避免在网络上明文传密码。
+  const host = w.replace(/^[a-z]+:\/\//i, "");
+  const isLocal = /^(localhost|127\.0\.0\.1)(:|\/|$)/i.test(host);
+  const base = (isLocal ? "ws://" : "wss://") + host;
+  return `${base}/api/realtime/ws?password=${encodeURIComponent(pw)}&role=browser`;
 }
 
 function scheduleReconnect() {

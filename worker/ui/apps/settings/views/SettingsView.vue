@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useModelStore } from '@/apps/settings/store';
 import { useWsStore } from '@/system/stores/ws';
-import { logout } from '@/system/api';
+import { api, logout } from '@/system/api';
 import SettingsHeader from '../components/SettingsHeader.vue';
 import Icon from '@/system/components/Icon.vue';
 
@@ -20,6 +20,42 @@ const saved = ref(false);
 const saving = ref(false);
 const showKey = ref(false);
 const showVisionKey = ref(false);
+
+// —— 顶部分页 tab ——
+const tab = ref('model'); // model | advanced | account
+
+// —— 在线修改访问口令 ——
+const pwOpen = ref(false);
+const pw = reactive({ current: '', next: '', confirm: '' });
+const pwBusy = ref(false);
+const pwMsg = ref('');
+const pwErr = ref('');
+function togglePw() {
+    pwOpen.value = !pwOpen.value;
+    pwMsg.value = ''; pwErr.value = '';
+    if (!pwOpen.value) { pw.current = ''; pw.next = ''; pw.confirm = ''; }
+}
+async function changePassword() {
+    if (pwBusy.value) return;
+    pwErr.value = ''; pwMsg.value = '';
+    if (pw.next.trim().length < 6) { pwErr.value = '新口令至少 6 位'; return; }
+    if (pw.next !== pw.confirm) { pwErr.value = '两次新口令不一致'; return; }
+    pwBusy.value = true;
+    try {
+        const r = await api.post('/api/identity/change-password', { current: pw.current, next: pw.next });
+        if (r.ok) {
+            pwMsg.value = '口令已更新 · 各设备请改用新口令重连';
+            pw.current = ''; pw.next = ''; pw.confirm = '';
+            setTimeout(() => { pwOpen.value = false; pwMsg.value = ''; }, 1600);
+        } else {
+            pwErr.value = r.error || '修改失败';
+        }
+    } catch (e) {
+        pwErr.value = e.message || '修改失败';
+    } finally {
+        pwBusy.value = false;
+    }
+}
 
 // 服务器只回掩码,不回明文 key
 const keyMasked = computed(() => model.config.keyPreview || (model.config.hasKey ? '已设置' : '未设置'));
@@ -97,6 +133,15 @@ watch(() => ws.connected, (v) => { if (v) load(); });
         <SettingsHeader />
         <main class="page">
             <div class="page-inner">
+
+                <div class="tabs">
+                    <button class="tab" :class="{ on: tab === 'model' }" @click="tab = 'model'">模型</button>
+                    <button class="tab" :class="{ on: tab === 'advanced' }" @click="tab = 'advanced'">高级</button>
+                    <button class="tab" :class="{ on: tab === 'account' }" @click="tab = 'account'">账户</button>
+                </div>
+
+                <!-- 模型页:主模型 + 视觉 -->
+                <div v-show="tab === 'model'">
 
                 <!-- ① 主模型 -->
                 <div class="card sec">
@@ -194,6 +239,11 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     </div>
                 </div>
 
+                </div><!-- /模型页 -->
+
+                <!-- 高级页:对话压缩 -->
+                <div v-show="tab === 'advanced'">
+
                 <!-- ③ 对话压缩 -->
                 <div class="card sec">
                     <div class="sec-head">
@@ -244,12 +294,17 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     </div>
                 </div>
 
-                <!-- 模型 / 视觉 / 压缩 的保存 -->
-                <div class="save-row">
+                </div><!-- /高级页 -->
+
+                <!-- 保存(模型 / 高级 页共用,账户页隐藏)-->
+                <div v-show="tab !== 'account'" class="save-row">
                     <button class="btn btn-primary" :disabled="!ws.connected || !dirty || saving" @click="save">{{ saved ? '已保存 ✓' : (saving ? '保存中…' : '保存') }}</button>
                     <button class="btn btn-plain" :disabled="!dirty || saving" @click="reset">重置</button>
                     <span v-if="!ws.connected" class="unit">连接断开,暂时只读</span>
                 </div>
+
+                <!-- 账户页 -->
+                <div v-show="tab === 'account'">
 
                 <!-- ④ 账户 -->
                 <div class="card sec">
@@ -262,9 +317,20 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     <div class="srow">
                         <span class="grow">
                             <span class="s-label">访问口令</span>
-                            <div class="s-sub">唯一的登录凭证,在线修改即将支持</div>
+                            <div class="s-sub">唯一的登录凭证 · 改后各设备需用新口令重连</div>
                         </span>
-                        <span class="s-ctrl"><button class="btn btn-plain" disabled>修改口令</button></span>
+                        <span class="s-ctrl"><button class="btn btn-plain" @click="togglePw">{{ pwOpen ? '收起' : '修改口令' }}</button></span>
+                    </div>
+                    <div v-show="pwOpen" class="pw-form">
+                        <input v-model="pw.current" class="input" type="password" placeholder="当前口令" autocomplete="current-password" />
+                        <input v-model="pw.next" class="input" type="password" placeholder="新口令(至少 6 位)" autocomplete="new-password" />
+                        <input v-model="pw.confirm" class="input" type="password" placeholder="再输一遍新口令" autocomplete="new-password" @keyup.enter="changePassword" />
+                        <div v-if="pwErr" class="pw-msg err">{{ pwErr }}</div>
+                        <div v-else-if="pwMsg" class="pw-msg ok">{{ pwMsg }}</div>
+                        <div class="pw-actions">
+                            <button class="btn btn-primary" :disabled="pwBusy" @click="changePassword">{{ pwBusy ? '提交中…' : '确认修改' }}</button>
+                            <button class="btn btn-plain" :disabled="pwBusy" @click="togglePw">取消</button>
+                        </div>
                     </div>
                     <div class="srow">
                         <span class="grow">
@@ -274,6 +340,7 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                         <span class="s-ctrl"><button class="btn btn-danger-soft" @click="logout">退出登录</button></span>
                     </div>
                 </div>
+                </div><!-- /账户页 -->
 
             </div>
         </main>
@@ -287,6 +354,20 @@ watch(() => ws.connected, (v) => { if (v) load(); });
 .sec-head { display: flex; align-items: flex-start; gap: 12px; padding-bottom: 12px; }
 .sec-title { font-size: 13px; font-weight: 800; }
 .sec-desc { margin-top: 3px; font-size: 12px; color: var(--ink-3); line-height: 1.6; }
+
+/* 顶部分页 tab（晴空软糖分段）*/
+.tabs { display: flex; gap: 4px; padding: 4px; background: var(--well); border-radius: 14px; margin-bottom: 14px; }
+.tab { flex: 1; padding: 9px 12px; border: 0; background: transparent; border-radius: 10px; font: inherit; font-size: 13px; font-weight: 700; color: var(--ink-3); cursor: pointer; transition: color .15s, background .15s, box-shadow .15s; }
+.tab.on { background: var(--panel); color: var(--ink); box-shadow: var(--shadow-s); }
+.tab:not(.on):hover { color: var(--ink2); }
+
+/* 在线修改访问口令 */
+.pw-form { display: flex; flex-direction: column; gap: 10px; padding: 2px 0 16px; }
+.pw-form .input { width: 100%; padding: 9px 12px; font-size: 13px; }
+.pw-msg { font-size: 12px; font-weight: 600; }
+.pw-msg.err { color: var(--bad); }
+.pw-msg.ok { color: var(--ok); }
+.pw-actions { display: flex; gap: 10px; margin-top: 2px; }
 
 /* 设置行:左 label + 说明,右控件 */
 .srow { display: flex; align-items: center; gap: 14px; padding: 13px 0; border-top: 1px solid var(--line-soft); }

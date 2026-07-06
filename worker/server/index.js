@@ -38,6 +38,9 @@ export default {
             if (res.headers.get('content-type')?.includes('text/html')) {
                 const r = new Response(res.body, res);
                 r.headers.set('Cache-Control', 'no-cache');
+                // 主控 UI 不该被任何页面框套 → 防点击劫持;并收紧 referer 外泄。
+                r.headers.set('X-Frame-Options', 'DENY');
+                r.headers.set('Referrer-Policy', 'no-referrer');
                 return r;
             }
             return res;

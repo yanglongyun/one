@@ -7,10 +7,11 @@
 | 组件 | 职责 |
 |---|---|
 | `MainActivity` | 全屏 WebView 开 worker UI —— 跟网页/桌面同一份界面、同一份云端数据 |
-| `DeviceService` | 前台服务:注册设备 → 连 `wss /do/ws` → 收 `tool.exec` 执行回 `tool.result` |
+| `DeviceService` | 前台服务:注册设备 → 连 `wss …/api/realtime/ws?role=device` → 收 `chat.tool.calls` 执行回 `chat.tool.result` |
 | `HandAccessibilityService` | 无障碍服务:点击(手势)+ 文本输入 |
 
-worker 地址写在 `app/build.gradle.kts` 的 `WORKER_URL`(改域名只动这一行)。
+worker 地址 + 访问密码 + 设备名都在**应用内「设置」页**填(存 SharedPreferences)。
+`app/build.gradle.kts` 的 `WORKER_URL` 只是编译期缺省值(默认留空),设置页填了就以设置页为准。
 
 ## 当前工具集(最小骨架)
 

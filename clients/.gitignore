@@ -1,0 +1,27 @@
+# 客户端本地产物与机密 —— 只留源码,别把真实配置/构建物提交上来
+
+# 真实运行配置(各端统一「主域名 + 密码」,机密只留本地;模板是 *.example.json)
+config.json
+**/config.json
+
+# deps
+node_modules/
+**/node_modules/
+
+# tauri 构建产物
+tauri/target/
+tauri/gen/
+
+# android 构建产物
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/.idea/
+android/captures/
+*.apk
+*.keystore
+*.jks
+
+# macOS
+.DS_Store
