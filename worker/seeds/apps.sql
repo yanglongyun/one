@@ -45,7 +45,7 @@ INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT i
         </div>
     </div>
 
-    <script src="./index.js"></script>
+    <!-- index.js 由平台在建表(index.sql)之后自动加载,应用无需自行引入 -->
 </body>
 </html>
 ',1,1783051262373);
@@ -173,7 +173,7 @@ textarea { font: inherit; color: var(--ink); }
 .fab:hover { filter: brightness(1.05); transform: translateY(-2px); }
 .fab:active { transform: scale(.94); }
 ',1,1783051262373);
-INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT id FROM apps WHERE slug='notes'),'index.js','// 笔记种子小应用 —— 用 window.one.sql 直读写系统 notes 表,证明小应用平台能承载真实功能。
+INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT id FROM apps WHERE slug='notes'),'index.js','// 笔记种子小应用 —— 用 window.one.sql 自建并读写 app_notes 表(小应用数据表统一 app_ 前缀)。
 const $ = (s) => document.querySelector(s);
 const COLORS = [''yellow'', ''blue'', ''green'', ''pink'', ''plain''];
 const colorOf = (c) => (COLORS.includes(c) ? c : ''plain'');
@@ -197,7 +197,7 @@ function fmtTime(ts) {
 }
 
 async function load() {
-    const rows = await one.sql(''SELECT id, content, color, pinned, created_at, updated_at FROM notes ORDER BY pinned DESC, id DESC'');
+    const rows = await one.sql(''SELECT id, content, color, pinned, created_at, updated_at FROM app_notes ORDER BY pinned DESC, id DESC'');
     render(rows || []);
 }
 
@@ -236,13 +236,13 @@ function render(items) {
 
 async function setColor(n, c) {
     if (colorOf(n.color) === c) return;
-    await one.sql(''UPDATE notes SET color = ?, updated_at = ? WHERE id = ?'', [c, Date.now(), n.id]);
+    await one.sql(''UPDATE app_notes SET color = ?, updated_at = ? WHERE id = ?'', [c, Date.now(), n.id]);
     load();
 }
 
 async function del(n) {
     if (!confirm(''删除这条笔记?'')) return;
-    await one.sql(''DELETE FROM notes WHERE id = ?'', [n.id]);
+    await one.sql(''DELETE FROM app_notes WHERE id = ?'', [n.id]);
     load();
 }
 
@@ -271,9 +271,9 @@ async function save() {
     const now = Date.now();
     const pinned = form.pinned ? 1 : 0;
     if (editingId) {
-        await one.sql(''UPDATE notes SET content = ?, color = ?, pinned = ?, updated_at = ? WHERE id = ?'', [content, form.color, pinned, now, editingId]);
+        await one.sql(''UPDATE app_notes SET content = ?, color = ?, pinned = ?, updated_at = ? WHERE id = ?'', [content, form.color, pinned, now, editingId]);
     } else {
-        await one.sql(''INSERT INTO notes (content, color, pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'', [content, form.color, pinned, now, now]);
+        await one.sql(''INSERT INTO app_notes (content, color, pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'', [content, form.color, pinned, now, now]);
     }
     closeModal();
     load();
@@ -286,7 +286,18 @@ $(''#f-content'').addEventListener(''input'', (e) => { form.content = e.target.v
 $(''#f-pin'').addEventListener(''click'', () => { form.pinned = !form.pinned; $(''#f-pin'').classList.toggle(''on'', form.pinned); });
 $(''#modal'').addEventListener(''click'', (e) => { if (e.target === $(''#modal'')) closeModal(); });
 
+// 数据表 app_notes 由平台在打开应用前按 index.sql 建好,这里直接加载
 load();
+',1,1783051262373);
+INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT id FROM apps WHERE slug='notes'),'index.sql','-- 笔记小应用数据表(平台打开应用时自动执行,幂等)
+CREATE TABLE IF NOT EXISTS app_notes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  content TEXT NOT NULL DEFAULT '''',
+  color TEXT NOT NULL DEFAULT ''yellow'',
+  pinned INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
 ',1,1783051262373);
 INSERT INTO apps (slug,name,icon,color,description,created_at,updated_at) VALUES ('todo','待办','✅','green','勾选清单 —— 出厂自带的种子小应用',1783051262373,1783051262373);
 INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT id FROM apps WHERE slug='todo'),'index.html','<!DOCTYPE html>
@@ -326,7 +337,7 @@ INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT i
 
     <button class="fab" id="btn-new" title="添加待办"><span class="i-plus"></span></button>
 
-    <script src="./index.js"></script>
+    <!-- index.js 由平台在建表(index.sql)之后自动加载,应用无需自行引入 -->
 </body>
 </html>
 ',1,1783051262373);
@@ -456,11 +467,7 @@ const esc = (s) => String(s ?? '''').replace(/[&<>"]/g, (m) => ({ ''&'': ''&amp;
 const splitting = new Set(); // 正在拆解中的待办 id
 
 async function init() {
-    // 首屏自建表(存在则跳过);老表补 parent_id 列(已有则报错忽略)
-    await one.sql(
-        "CREATE TABLE IF NOT EXISTS app_todo (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT NOT NULL DEFAULT '''', done INTEGER NOT NULL DEFAULT 0, parent_id INTEGER, created_at INTEGER NOT NULL, done_at INTEGER)"
-    );
-    try { await one.sql(''ALTER TABLE app_todo ADD COLUMN parent_id INTEGER''); } catch { /* 列已存在 */ }
+    // 表由平台在打开应用前按 index.sql 建好,这里直接加载
     await load();
 }
 
@@ -582,6 +589,18 @@ $(''#btn-new'').addEventListener(''click'', () => {
 
 init();
 ',1,1783051262373);
+INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT id FROM apps WHERE slug='todo'),'index.sql','-- 待办小应用数据表(平台打开应用时自动执行,幂等)
+CREATE TABLE IF NOT EXISTS app_todo (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  text TEXT NOT NULL DEFAULT '''',
+  done INTEGER NOT NULL DEFAULT 0,
+  parent_id INTEGER,
+  created_at INTEGER NOT NULL,
+  done_at INTEGER
+);
+-- 老库补列:新装的会因 parent_id 已存在而报错,平台逐条容错跳过
+ALTER TABLE app_todo ADD COLUMN parent_id INTEGER;
+',1,1783051262373);
 INSERT INTO apps (slug,name,icon,color,description,created_at,updated_at) VALUES ('love','恋爱','💕','pink','虚拟恋人陪伴对话 —— 出厂自带的种子小应用',1783051262373,1783051262373);
 INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT id FROM apps WHERE slug='love'),'index.html','<!DOCTYPE html>
 <html lang="zh-CN">
@@ -615,7 +634,7 @@ INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT i
         </div>
     </div>
 
-    <script src="./index.js"></script>
+    <!-- index.js 由平台在建表(index.sql)之后自动加载,应用无需自行引入 -->
 </body>
 </html>
 ',1,1783051262373);
@@ -743,8 +762,7 @@ let msgs = [];           // { role:''me''|''ta'', content }
 let sending = false;
 
 async function init() {
-    await one.sql("CREATE TABLE IF NOT EXISTS app_love_config (id INTEGER PRIMARY KEY CHECK (id = 1), name TEXT NOT NULL DEFAULT '''', persona TEXT NOT NULL DEFAULT '''', created_at INTEGER NOT NULL)");
-    await one.sql("CREATE TABLE IF NOT EXISTS app_love_msgs (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT NOT NULL, content TEXT NOT NULL DEFAULT '''', at INTEGER NOT NULL)");
+    // 表由平台在打开应用前按 index.sql 建好,这里直接读数据
     const rows = await one.sql(''SELECT name, persona FROM app_love_config WHERE id = 1'');
     cfg = rows && rows[0] ? rows[0] : null;
     if (!cfg) { openSetup(); return; }
@@ -842,6 +860,20 @@ $(''#input'').addEventListener(''input'', (e) => { const el = e.target; el.style
 
 init();
 ',1,1783051262373);
+INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT id FROM apps WHERE slug='love'),'index.sql','-- 恋爱小应用数据表(平台打开应用时自动执行,幂等)
+CREATE TABLE IF NOT EXISTS app_love_config (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  name TEXT NOT NULL DEFAULT '''',
+  persona TEXT NOT NULL DEFAULT '''',
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS app_love_msgs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL DEFAULT '''',
+  at INTEGER NOT NULL
+);
+',1,1783051262373);
 INSERT INTO apps (slug,name,icon,color,description,created_at,updated_at) VALUES ('insight','启示','💡','orange','每天一条 AI 给你的下一步建议',1783051262373,1783051262373);
 INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT id FROM apps WHERE slug='insight'),'index.html','<!DOCTYPE html>
 <html lang="zh-CN">
@@ -872,7 +904,7 @@ INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT i
         </div>
     </main>
 
-    <script src="./index.js"></script>
+    <!-- index.js 由平台在建表(index.sql)之后自动加载,应用无需自行引入 -->
 </body>
 </html>
 ',1,1783051262373);
@@ -1019,10 +1051,6 @@ function prettyDate(day) {
 const TODAY = localDay();
 let generating = false;
 
-async function ensureTable() {
-    await one.sql("CREATE TABLE IF NOT EXISTS app_insight (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT NOT NULL, content TEXT NOT NULL DEFAULT '''', created_at INTEGER NOT NULL)");
-}
-
 async function latestForDay(day) {
     const rows = await one.sql(''SELECT * FROM app_insight WHERE day = ? ORDER BY id DESC LIMIT 1'', [day]);
     return (rows && rows[0]) || null;
@@ -1087,7 +1115,7 @@ async function generate() {
     const day = TODAY;
     const now = Date.now();
     try {
-        await one.agent(`你是这位用户的私人顾问。今天是 ${day}。用 sql 查询他的数据——读 tasks 表(最近/在跑的任务与状态)、memories 表(他的长期偏好和事实)、notes 表、app_todo 表(待办清单,若存在),了解他最近在做什么、卡在哪、在意什么。综合出【今天最值得推进的一件事】,给一条具体、可执行、有洞察的建议(80到160字,像个真正懂他的朋友,别空泛别说教、别客套)。最后用一句 sql 把结论写进表:INSERT INTO app_insight (day, content, created_at) VALUES (''${day}'', ''这里放你的建议(注意转义单引号)'', ${now})。只写这一条。`);
+        await one.agent(`你是这位用户的私人顾问。今天是 ${day}。用 sql 查询他的数据——读 tasks 表(最近/在跑的任务与状态)、memories 表(他的长期偏好和事实)、app_notes 表(笔记小应用的数据)、app_todo 表(待办清单,若存在),了解他最近在做什么、卡在哪、在意什么。综合出【今天最值得推进的一件事】,给一条具体、可执行、有洞察的建议(80到160字,像个真正懂他的朋友,别空泛别说教、别客套)。最后用一句 sql 把结论写进表:INSERT INTO app_insight (day, content, created_at) VALUES (''${day}'', ''这里放你的建议(注意转义单引号)'', ${now})。只写这一条。`);
     } catch (e) {
         // agent 抛错也照样去查一遍,它可能已经写成功了
         console.warn(''agent error'', e);
@@ -1127,8 +1155,8 @@ async function loadHistory() {
 }
 
 async function init() {
+    // 表 app_insight 由平台在打开应用前按 index.sql 建好
     $(''#today-date'').textContent = prettyDate(TODAY);
-    await ensureTable();
     const today = await latestForDay(TODAY);
     loadHistory();
     if (today) {
@@ -1139,4 +1167,12 @@ async function init() {
 }
 
 init();
+',1,1783051262373);
+INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT id FROM apps WHERE slug='insight'),'index.sql','-- 启示小应用数据表(平台打开应用时自动执行,幂等)
+CREATE TABLE IF NOT EXISTS app_insight (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  day TEXT NOT NULL,
+  content TEXT NOT NULL DEFAULT '''',
+  created_at INTEGER NOT NULL
+);
 ',1,1783051262373);

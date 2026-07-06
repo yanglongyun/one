@@ -19,10 +19,6 @@ function prettyDate(day) {
 const TODAY = localDay();
 let generating = false;
 
-async function ensureTable() {
-    await one.sql("CREATE TABLE IF NOT EXISTS app_insight (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT NOT NULL, content TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL)");
-}
-
 async function latestForDay(day) {
     const rows = await one.sql('SELECT * FROM app_insight WHERE day = ? ORDER BY id DESC LIMIT 1', [day]);
     return (rows && rows[0]) || null;
@@ -87,7 +83,7 @@ async function generate() {
     const day = TODAY;
     const now = Date.now();
     try {
-        await one.agent(`你是这位用户的私人顾问。今天是 ${day}。用 sql 查询他的数据——读 tasks 表(最近/在跑的任务与状态)、memories 表(他的长期偏好和事实)、notes 表、app_todo 表(待办清单,若存在),了解他最近在做什么、卡在哪、在意什么。综合出【今天最值得推进的一件事】,给一条具体、可执行、有洞察的建议(80到160字,像个真正懂他的朋友,别空泛别说教、别客套)。最后用一句 sql 把结论写进表:INSERT INTO app_insight (day, content, created_at) VALUES ('${day}', '这里放你的建议(注意转义单引号)', ${now})。只写这一条。`);
+        await one.agent(`你是这位用户的私人顾问。今天是 ${day}。用 sql 查询他的数据——读 tasks 表(最近/在跑的任务与状态)、memories 表(他的长期偏好和事实)、app_notes 表(笔记小应用的数据)、app_todo 表(待办清单,若存在),了解他最近在做什么、卡在哪、在意什么。综合出【今天最值得推进的一件事】,给一条具体、可执行、有洞察的建议(80到160字,像个真正懂他的朋友,别空泛别说教、别客套)。最后用一句 sql 把结论写进表:INSERT INTO app_insight (day, content, created_at) VALUES ('${day}', '这里放你的建议(注意转义单引号)', ${now})。只写这一条。`);
     } catch (e) {
         // agent 抛错也照样去查一遍,它可能已经写成功了
         console.warn('agent error', e);
@@ -127,8 +123,8 @@ async function loadHistory() {
 }
 
 async function init() {
+    // 表 app_insight 由平台在打开应用前按 index.sql 建好
     $('#today-date').textContent = prettyDate(TODAY);
-    await ensureTable();
     const today = await latestForDay(TODAY);
     loadHistory();
     if (today) {

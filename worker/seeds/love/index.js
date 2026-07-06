@@ -15,8 +15,7 @@ let msgs = [];           // { role:'me'|'ta', content }
 let sending = false;
 
 async function init() {
-    await one.sql("CREATE TABLE IF NOT EXISTS app_love_config (id INTEGER PRIMARY KEY CHECK (id = 1), name TEXT NOT NULL DEFAULT '', persona TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL)");
-    await one.sql("CREATE TABLE IF NOT EXISTS app_love_msgs (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT NOT NULL, content TEXT NOT NULL DEFAULT '', at INTEGER NOT NULL)");
+    // 表由平台在打开应用前按 index.sql 建好,这里直接读数据
     const rows = await one.sql('SELECT name, persona FROM app_love_config WHERE id = 1');
     cfg = rows && rows[0] ? rows[0] : null;
     if (!cfg) { openSetup(); return; }

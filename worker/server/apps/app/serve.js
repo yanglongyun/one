@@ -2,11 +2,12 @@
 //   GET /api/apps/<slug>/runtime           → index.html 最新版(自动注入 <base> + /api/apps/sdk.js)
 //   GET /api/apps/<slug>/runtime/index.js  → 最新 JS
 //   GET /api/apps/<slug>/runtime/index.css → 最新 CSS
+//   GET /api/apps/<slug>/runtime/index.sql → 建表 DDL(SDK 打开应用时先逐条跑它建表,再加载 index.js)
 //   GET /api/apps/sdk.js                   → window.one SDK(sql/proxy/llm/vision/agent 五个方法)
 // 页面本身不鉴权(单用户;能力桥调用才需要 token,SDK 自动从 localStorage 带)。
 import * as repo from './repository.js';
 
-const TYPES = { 'index.html': 'text/html; charset=utf-8', 'index.js': 'text/javascript; charset=utf-8', 'index.css': 'text/css; charset=utf-8' };
+const TYPES = { 'index.html': 'text/html; charset=utf-8', 'index.js': 'text/javascript; charset=utf-8', 'index.css': 'text/css; charset=utf-8', 'index.sql': 'text/plain; charset=utf-8' };
 
 // 只允许同源(主 SPA)把应用装进 iframe,挡掉外站框套 → 防点击劫持。
 const FRAME_GUARD = { 'X-Frame-Options': 'SAMEORIGIN' };
@@ -28,7 +29,7 @@ export async function serveApp(db, pathname) {
     });
 
     let content = row.content;
-    if (file === 'index.html') content = injectSdk(injectBase(content, slug));
+    if (file === 'index.html') content = injectSdk(injectBase(stripAppScript(content), slug));
     return new Response(content, { headers: { 'Content-Type': TYPES[file], 'Cache-Control': 'no-cache', ...FRAME_GUARD } });
 }
 
@@ -40,7 +41,13 @@ function injectBase(html, slug) {
     return tag + '\n' + html;
 }
 
-// index.html 里没引 SDK 就注入(容错 AI 忘写);css/js 由 AI 自己在 html 里引用 ./index.css ./index.js
+// 剥离应用自带的 <script src="./index.js">:平台改由 SDK 在跑完 index.sql(建表)后再加载它,
+// 保证「建表 → 主脚本」顺序。应用只管写 index.html(引 index.css)+ index.js + index.sql,不必自己引 index.js。
+function stripAppScript(html) {
+    return html.replace(/<script\b[^>]*\bsrc\s*=\s*["']\.?\/?index\.js["'][^>]*>\s*<\/script>/gi, '');
+}
+
+// index.html 里没引 SDK 就注入(容错 AI 忘写);css 由 AI 自己在 html 里引用 ./index.css
 function injectSdk(html) {
     if (html.includes('/api/apps/sdk.js')) return html;
     const tag = '<script src="/api/apps/sdk.js"></script>';
@@ -124,5 +131,24 @@ export const SDK_SOURCE = `// one SDK · window.one —— 自定义应用的能
             }
         },
     };
+
+    // ── 平台引导:先按 index.sql 建表(逐条幂等、单条失败不影响后续),再加载应用主脚本 index.js ──
+    // 应用只需在同目录放一个 index.sql 声明表结构(不放也行,空则跳过);相对地址经 <base> 解析到本应用目录。
+    (async () => {
+        try {
+            const res = await fetch('index.sql', { cache: 'no-store' });
+            if (res.ok) {
+                const ddl = (await res.text()).trim();
+                for (const raw of ddl.split(';')) {
+                    const stmt = raw.trim();
+                    if (!stmt) continue;
+                    if (!stmt.replace(/--[^\\n]*/g, '').trim()) continue; // 整段只剩注释就跳过
+                    try { await window.one.sql(stmt); } catch (e) { console.warn('[one] 建表语句失败(已跳过):', e.message); }
+                }
+            }
+        } catch (e) { console.warn('[one] index.sql 处理跳过:', e.message); }
+        const boot = () => { const el = document.createElement('script'); el.src = 'index.js'; document.body.appendChild(el); };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+    })();
 })();
 `;

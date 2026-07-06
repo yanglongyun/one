@@ -6,11 +6,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (m) => ({ '&': '&amp;', '<
 const splitting = new Set(); // 正在拆解中的待办 id
 
 async function init() {
-    // 首屏自建表(存在则跳过);老表补 parent_id 列(已有则报错忽略)
-    await one.sql(
-        "CREATE TABLE IF NOT EXISTS app_todo (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT NOT NULL DEFAULT '', done INTEGER NOT NULL DEFAULT 0, parent_id INTEGER, created_at INTEGER NOT NULL, done_at INTEGER)"
-    );
-    try { await one.sql('ALTER TABLE app_todo ADD COLUMN parent_id INTEGER'); } catch { /* 列已存在 */ }
+    // 表由平台在打开应用前按 index.sql 建好,这里直接加载
     await load();
 }
 

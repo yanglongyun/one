@@ -1,4 +1,4 @@
-// 笔记种子小应用 —— 用 window.one.sql 直读写系统 notes 表,证明小应用平台能承载真实功能。
+// 笔记种子小应用 —— 用 window.one.sql 自建并读写 app_notes 表(小应用数据表统一 app_ 前缀)。
 const $ = (s) => document.querySelector(s);
 const COLORS = ['yellow', 'blue', 'green', 'pink', 'plain'];
 const colorOf = (c) => (COLORS.includes(c) ? c : 'plain');
@@ -22,7 +22,7 @@ function fmtTime(ts) {
 }
 
 async function load() {
-    const rows = await one.sql('SELECT id, content, color, pinned, created_at, updated_at FROM notes ORDER BY pinned DESC, id DESC');
+    const rows = await one.sql('SELECT id, content, color, pinned, created_at, updated_at FROM app_notes ORDER BY pinned DESC, id DESC');
     render(rows || []);
 }
 
@@ -61,13 +61,13 @@ function render(items) {
 
 async function setColor(n, c) {
     if (colorOf(n.color) === c) return;
-    await one.sql('UPDATE notes SET color = ?, updated_at = ? WHERE id = ?', [c, Date.now(), n.id]);
+    await one.sql('UPDATE app_notes SET color = ?, updated_at = ? WHERE id = ?', [c, Date.now(), n.id]);
     load();
 }
 
 async function del(n) {
     if (!confirm('删除这条笔记?')) return;
-    await one.sql('DELETE FROM notes WHERE id = ?', [n.id]);
+    await one.sql('DELETE FROM app_notes WHERE id = ?', [n.id]);
     load();
 }
 
@@ -96,9 +96,9 @@ async function save() {
     const now = Date.now();
     const pinned = form.pinned ? 1 : 0;
     if (editingId) {
-        await one.sql('UPDATE notes SET content = ?, color = ?, pinned = ?, updated_at = ? WHERE id = ?', [content, form.color, pinned, now, editingId]);
+        await one.sql('UPDATE app_notes SET content = ?, color = ?, pinned = ?, updated_at = ? WHERE id = ?', [content, form.color, pinned, now, editingId]);
     } else {
-        await one.sql('INSERT INTO notes (content, color, pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?)', [content, form.color, pinned, now, now]);
+        await one.sql('INSERT INTO app_notes (content, color, pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?)', [content, form.color, pinned, now, now]);
     }
     closeModal();
     load();
@@ -111,4 +111,5 @@ $('#f-content').addEventListener('input', (e) => { form.content = e.target.value
 $('#f-pin').addEventListener('click', () => { form.pinned = !form.pinned; $('#f-pin').classList.toggle('on', form.pinned); });
 $('#modal').addEventListener('click', (e) => { if (e.target === $('#modal')) closeModal(); });
 
+// 数据表 app_notes 由平台在打开应用前按 index.sql 建好,这里直接加载
 load();

@@ -12,7 +12,7 @@ const APPS = [
     { slug: 'love', name: '恋爱', icon: '💕', color: 'pink', description: '虚拟恋人陪伴对话 —— 出厂自带的种子小应用' },
     { slug: 'insight', name: '启示', icon: '💡', color: 'orange', description: '每天一条 AI 给你的下一步建议' },
 ];
-const FILES = ['index.html', 'index.css', 'index.js'];
+const FILES = ['index.html', 'index.css', 'index.js', 'index.sql'];
 const q = (s) => s.replace(/'/g, "''");
 
 let out = '-- 出厂种子小应用(由 seeds/build.mjs 生成,勿手改;apps.id 自增,codes.app_id 用 slug 子查询定位)\n';

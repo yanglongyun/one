@@ -86,16 +86,7 @@ CREATE TABLE goals (
   updated_at  INTEGER NOT NULL
 );
 
--- ═══════════ 笔记 ═══════════
-CREATE TABLE notes (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  content     TEXT NOT NULL DEFAULT '',
-  color       TEXT NOT NULL DEFAULT 'yellow',
-  pinned      INTEGER NOT NULL DEFAULT 0,
-  created_at  INTEGER NOT NULL,
-  updated_at  INTEGER NOT NULL
-);
-CREATE INDEX idx_notes_created ON notes(id DESC);
+-- 笔记不再是系统表:已改为「笔记」种子小应用,数据表 app_notes 由该应用运行时自建(见 seeds/notes)。
 
 -- ═══════════ 记忆(长期用户上下文;时间线走呈现层,created_at/updated_at 已够排)═══════════
 CREATE TABLE memories (
