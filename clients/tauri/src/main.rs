@@ -74,7 +74,14 @@ fn save_creds(app: AppHandle, worker: String, password: String, name: String) {
         return;
     }
     if let Ok(url) = tauri::Url::parse(&worker_login_url(&worker, &password)) {
-        if let Some(w) = app.get_webview_window("main") {
+        // 优先主窗口;找不到就退到任意非设置窗口,避免 label 变动时静默失效
+        let target = app.get_webview_window("main").or_else(|| {
+            app.webview_windows()
+                .into_iter()
+                .find(|(label, _)| label != "settings")
+                .map(|(_, w)| w)
+        });
+        if let Some(w) = target {
             let _ = w.navigate(url);
             let _ = w.show();
         }

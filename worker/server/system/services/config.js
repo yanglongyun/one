@@ -6,7 +6,7 @@ export async function loadModelConfig(db) {
     if (!c.apiUrl) missing.push('API 地址');
     if (!c.apiKey) missing.push('API Key');
     if (!c.model) missing.push('模型');
-    if (missing.length) return { error: `还没配置模型(缺:${missing.join('、')})。去设置填好再发消息。` };
+    if (missing.length) return { error: `还没配置模型(缺:${missing.join('、')})。去设置填好再发消息。`, code: 'model_unconfigured' };
     return {
         apiUrl: c.apiUrl,
         apiKey: c.apiKey,

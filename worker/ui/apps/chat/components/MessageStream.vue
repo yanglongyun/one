@@ -145,7 +145,11 @@ watch(() => chat.viewSeq, () => {
                     <img style="max-width:100%;border-radius:14px;box-shadow:var(--shadow-m)" :src="block.message.dataUrl" alt="屏幕截图" />
                 </div>
 
-                <span v-else-if="block.message.role === 'system'" class="sys-chip">{{ block.message.content }}</span>
+                <span v-else-if="block.message.role === 'system'" class="sys-chip">{{ block.message.content }}<router-link
+                        v-if="block.message.code === 'model_unconfigured'"
+                        to="/settings"
+                        class="sys-cta"
+                    >去设置 →</router-link></span>
             </template>
 
             <div v-if="showTyping" class="msg-ai rise-enter">
@@ -193,6 +197,14 @@ watch(() => chat.viewSeq, () => {
     padding: 5px 13px;
     border-radius: 99px;
 }
+.sys-cta {
+    margin-left: 6px;
+    color: var(--candy);
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.sys-cta:hover { text-decoration: underline; }
 .msg-user {
     align-self: flex-end;
     max-width: 76%;

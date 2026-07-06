@@ -186,7 +186,9 @@
     try { label = window.__TAURI__.webviewWindow.getCurrentWebviewWindow().label; } catch (e) {}
 
     const go = (worker, password) => {
-      const base = worker.trim().replace(/\/+$/, '');
+      let base = worker.trim().replace(/\/+$/, '');
+      // 裸域名补 https,否则 location.href 会把它当相对路径(基于 tauri://localhost 解析成死地址 → 白屏)
+      if (!/^https?:\/\//i.test(base)) base = 'https://' + base;
       // 带上密码让网页自动登录(hash 不会发给服务器,读完即清)
       location.href = base + '/#auth=' + encodeURIComponent(password || '');
     };
@@ -258,11 +260,16 @@
       msg.textContent = '正在连接 ' + worker + ' …';
 
       try {
-        // save_creds 会让主窗口(重新)加载新的 worker 地址
+        // save_creds 持久化凭证;设置窗口靠 Rust 侧 navigate 去切主窗口
         await invoke('save_creds', { worker, password, name });
         msg.className = 'msg ok';
-        msg.textContent = label === 'settings' ? '已保存,主窗口正在连接新地址' : '已保存,正在打开云端…';
-        // 主窗口:由 Rust 侧 navigate,无需前端跳转
+        if (label === 'settings') {
+          msg.textContent = '已保存,主窗口正在连接新地址';
+        } else {
+          // 首连:主窗口自己跳转到云端,不依赖 Rust self-navigate(WKWebView 上不稳,会卡在表单)
+          msg.textContent = '已保存,正在打开云端…';
+          go(worker, password);
+        }
       } catch (err) {
         // 失败必须让用户看到原因,不能悄无声息
         msg.className = 'msg err';

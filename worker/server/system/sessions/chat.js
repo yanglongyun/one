@@ -18,7 +18,7 @@ export async function runChatTurn(hub, threadId, input, signal, { touchChat = tr
 
     const config = await loadModelConfig(hub.db);
     if (config.error) {
-        emit('chat.error', { content: config.error });
+        emit('chat.error', { content: config.error, code: config.code });
         return { status: 'failed', error: config.error, finalText: '' };
     }
 
@@ -27,7 +27,7 @@ export async function runChatTurn(hub, threadId, input, signal, { touchChat = tr
     if (images.length) {
         const cfg = await visionConfig(hub);
         if (cfg.error) {
-            emit('chat.error', { content: cfg.error });
+            emit('chat.error', { content: cfg.error, code: cfg.code });
             return { status: 'failed', error: cfg.error, finalText: '' };
         }
         imageNotes = await describeImages(cfg, images, text, signal);
@@ -109,11 +109,11 @@ function normalizeImages(value) {
 async function visionConfig(hub) {
     const c = await settings(hub.db).all();
     if (c.visionEnabled) {
-        if (!c.apiUrl || !c.apiKey || !c.model) return { error: '已开启「主模型做视觉」,但主模型未配置完整。' };
+        if (!c.apiUrl || !c.apiKey || !c.model) return { error: '已开启「主模型做视觉」,但主模型未配置完整。', code: 'model_unconfigured' };
         return { apiUrl: c.apiUrl, apiKey: c.apiKey, model: c.model, authMode: c.authMode || 'bearer' };
     }
     if (!c.visionApiUrl || !c.visionApiKey || !c.visionModel) {
-        return { error: '未配置视觉:要么开启「主模型做视觉」,要么填独立视觉模型(url/key/model)。' };
+        return { error: '未配置视觉:要么开启「主模型做视觉」,要么填独立视觉模型(url/key/model)。', code: 'model_unconfigured' };
     }
     return { apiUrl: c.visionApiUrl, apiKey: c.visionApiKey, model: c.visionModel, authMode: c.visionAuthMode || 'bearer' };
 }
