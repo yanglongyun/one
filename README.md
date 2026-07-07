@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/logo.svg" width="96" height="96" alt="one" />
+<img src="docs/hero.png" alt="one —— 你的个人 AI 助理" width="840" />
 
 # one
 
