@@ -60,12 +60,12 @@ async fn serve(cfg: &Config) -> Result<(), String> {
     } else {
         cfg.name.clone()
     };
-    // 平台分能力宣告:macOS 全量;其它平台只报 shell/files/status(computer_*、截屏不报)。
-    #[cfg(target_os = "macos")]
+    // 平台分能力宣告:macOS / Windows 全量;其它平台(Linux)只报 shell/files/status。
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     let caps: &[&str] = &["shell", "files", "status",
                           "computer_screen", "computer_click", "computer_type", "computer_key", "computer_open_app",
                           "screenshot"];
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     let caps: &[&str] = &["shell", "files", "status"];
     let _ = tx.send(Message::Text(
         serde_json::json!({ "type": "hello", "kind": "desktop", "name": name, "caps": caps }).to_string(),

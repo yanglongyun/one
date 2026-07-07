@@ -1,21 +1,21 @@
 // mac 电脑控制(经 AppleScript / System Events;按元素名操作,无需视觉)。
 // 需用户在「系统设置 → 隐私与安全性 → 辅助功能 / 自动化」给 one 授权。
 // 截图能力统一叫 screenshot,让「看屏」更可靠(自绘/画布类界面 AX 读不到)。
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 use std::process::Stdio;
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 use base64::Engine;
 use serde_json::{json, Value};
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 use tokio::process::Command;
 
 pub fn owns(name: &str) -> bool {
     name.starts_with("computer_") || name == "screenshot"
 }
 
-// 非 macOS:这些能力不宣告(见 connection.rs),即便被点名也礼貌拒绝。
-#[cfg(not(target_os = "macos"))]
+// 其它平台(如 Linux):这些能力不宣告(见 connection.rs),即便被点名也礼貌拒绝。
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 pub async fn run(_name: &str, _args: &Value) -> Value {
     json!({ "error": "此平台暂不支持" })
 }
@@ -371,8 +371,8 @@ async fn desktop_points() -> (u32, u32) {
     }
 }
 
-// 坐标点击(点空间)。需『辅助功能』权限。
-#[cfg(target_os = "macos")]
+// 坐标点击(mac=点空间/需辅助功能;win=物理像素)。enigo 跨平台。
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 fn click_at(x: i32, y: i32) -> Value {
     use enigo::{Button, Coordinate, Direction, Enigo, Mouse, Settings};
     let mut e = match Enigo::new(&Settings::default()) {
@@ -387,3 +387,233 @@ fn click_at(x: i32, y: i32) -> Value {
     }
     json!({ "ok": true, "x": x, "y": y })
 }
+
+// ═══════════════════════ Windows 实现 ═══════════════════════
+// 与 mac 同构:外部脚本引擎从 osascript 换成 PowerShell + .NET。
+//   · 截屏      → System.Windows.Forms/Drawing 抓屏 + 缩放
+//   · 读控件    → System.Windows.Automation(UIA,即 mac AX 的对面版)
+//   · 按名点击  → UIA 找元素 → InvokePattern;无 Invoke 则取中心坐标交 enigo 点
+//   · 坐标点击/输入/按键 → 复用跨平台 enigo
+// 注:未在真机实测,以此为基线;DPI 缩放 / 多显示器下坐标可能需按报错微调。
+#[cfg(target_os = "windows")]
+pub async fn run(name: &str, args: &Value) -> Value {
+    match name {
+        "computer_screen" => match ps(SCREEN_PS).await {
+            Ok(v) => json!({ "screen": v }),
+            Err(e) => json!({ "error": e }),
+        },
+        "screenshot" => screenshot().await,
+        "computer_click" => {
+            let text = args.get("text").and_then(|x| x.as_str()).unwrap_or("");
+            if !text.is_empty() {
+                win_click_named(text).await
+            } else {
+                match (args.get("x").and_then(|v| v.as_f64()), args.get("y").and_then(|v| v.as_f64())) {
+                    (Some(x), Some(y)) => click_at(x as i32, y as i32),
+                    _ => json!({ "error": "缺少 text 或 x,y" }),
+                }
+            }
+        }
+        "computer_type" => win_type(args.get("text").and_then(|x| x.as_str()).unwrap_or("")),
+        "computer_key" => win_key(args.get("key").and_then(|x| x.as_str()).unwrap_or("")),
+        "computer_open_app" => {
+            let n = args.get("name").and_then(|x| x.as_str()).unwrap_or("");
+            if n.is_empty() {
+                return json!({ "error": "缺少 name" });
+            }
+            let script = format!("Start-Process '{}'", n.replace('\'', "''"));
+            match ps(&script).await {
+                Ok(_) => json!({ "ok": true }),
+                Err(e) => json!({ "error": format!("打开失败: {n} ({e})") }),
+            }
+        }
+        other => json!({ "error": format!("{other} 未实现") }),
+    }
+}
+
+// 跑一段 PowerShell,成功返回 stdout(去空白),失败返回 stderr。
+#[cfg(target_os = "windows")]
+async fn ps(script: &str) -> Result<String, String> {
+    let out = Command::new("powershell")
+        .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script])
+        .stdin(Stdio::null())
+        .output()
+        .await
+        .map_err(|e| e.to_string())?;
+    if out.status.success() {
+        Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+    } else {
+        Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+    }
+}
+
+// 截屏 → base64 PNG + 尺寸。w,h=缩到宽 1280 的图像像素;cw,ch=屏幕物理像素(点击坐标空间)。
+#[cfg(target_os = "windows")]
+async fn screenshot() -> Value {
+    let path = std::env::temp_dir().join("one-shot.png");
+    let script = SHOT_PS.replace("__PATH__", &path.to_string_lossy());
+    let dims = match ps(&script).await {
+        Ok(d) => d,
+        Err(e) => return json!({ "error": format!("截屏失败: {e}") }),
+    };
+    let nums: Vec<u32> = dims.split_whitespace().filter_map(|s| s.parse().ok()).collect();
+    let (w, h, cw, ch) = if nums.len() == 4 { (nums[0], nums[1], nums[2], nums[3]) } else { (0, 0, 0, 0) };
+    let bytes = match tokio::fs::read(&path).await {
+        Ok(b) => b,
+        Err(e) => return json!({ "error": e.to_string() }),
+    };
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    json!({ "image": format!("data:image/png;base64,{b64}"), "w": w, "h": h, "cw": cw, "ch": ch })
+}
+
+// 按名点击:UIA 找到元素 → 优先 InvokePattern;没有就返回中心坐标交给 enigo 点。
+#[cfg(target_os = "windows")]
+async fn win_click_named(text: &str) -> Value {
+    let script = CLICK_PS.replace("__TEXT__", &text.replace('\'', "''"));
+    match ps(&script).await {
+        Ok(o) if o == "ok" => json!({ "ok": true }),
+        Ok(o) if o.starts_with("XY ") => {
+            let nums: Vec<i32> = o.split_whitespace().skip(1).filter_map(|s| s.parse().ok()).collect();
+            if nums.len() == 2 {
+                click_at(nums[0], nums[1])
+            } else {
+                json!({ "error": "坐标解析失败" })
+            }
+        }
+        Ok(o) => json!({ "error": if o.is_empty() { format!("未找到可点击元素: {text}") } else { o } }),
+        Err(e) => json!({ "error": e }),
+    }
+}
+
+// 输入文本(往当前聚焦处)
+#[cfg(target_os = "windows")]
+fn win_type(text: &str) -> Value {
+    use enigo::{Enigo, Keyboard, Settings};
+    let mut e = match Enigo::new(&Settings::default()) {
+        Ok(e) => e,
+        Err(err) => return json!({ "error": format!("enigo 初始化失败: {err}") }),
+    };
+    match e.text(text) {
+        Ok(_) => json!({ "ok": true }),
+        Err(err) => json!({ "error": err.to_string() }),
+    }
+}
+
+// 按键:常用命名键 → 专用键;否则当作字符输入
+#[cfg(target_os = "windows")]
+fn win_key(k: &str) -> Value {
+    use enigo::{Direction, Enigo, Key, Keyboard, Settings};
+    let mut e = match Enigo::new(&Settings::default()) {
+        Ok(e) => e,
+        Err(err) => return json!({ "error": format!("enigo 初始化失败: {err}") }),
+    };
+    let key = match k {
+        "enter" | "return" => Key::Return,
+        "tab" => Key::Tab,
+        "space" => Key::Space,
+        "escape" | "esc" => Key::Escape,
+        "delete" | "backspace" => Key::Backspace,
+        "up" => Key::UpArrow,
+        "down" => Key::DownArrow,
+        "left" => Key::LeftArrow,
+        "right" => Key::RightArrow,
+        other => {
+            return match e.text(other) {
+                Ok(_) => json!({ "ok": true }),
+                Err(err) => json!({ "error": err.to_string() }),
+            };
+        }
+    };
+    match e.key(key, Direction::Click) {
+        Ok(_) => json!({ "ok": true }),
+        Err(err) => json!({ "error": err.to_string() }),
+    }
+}
+
+// 读前台窗口的 UIA 控件树 → 文本清单(控件类型 + 名称),深度/条数限流。
+#[cfg(target_os = "windows")]
+const SCREEN_PS: &str = r#"
+Add-Type -AssemblyName UIAutomationClient,UIAutomationTypes
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public static class Fg { [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow(); }
+"@
+$h=[Fg]::GetForegroundWindow()
+$root=[System.Windows.Automation.AutomationElement]::FromHandle($h)
+$walker=[System.Windows.Automation.TreeWalker]::ControlViewWalker
+$sb=[System.Text.StringBuilder]::new()
+$script:count=0
+$max=300
+function Walk($e,$depth){
+  if($script:count -ge $max -or $depth -gt 8){return}
+  try{
+    $name=$e.Current.Name
+    $ct=($e.Current.ControlType.ProgrammaticName -replace '^ControlType\.','')
+    if($name -or $ct){
+      $line=('  '*$depth)+$ct
+      if($name){$line=$line+': '+$name}
+      [void]$sb.AppendLine($line)
+      $script:count++
+    }
+  }catch{}
+  try{
+    $c=$walker.GetFirstChild($e)
+    while($c -ne $null -and $script:count -lt $max){
+      Walk $c ($depth+1)
+      $c=$walker.GetNextSibling($c)
+    }
+  }catch{}
+}
+try{
+  [void]$sb.AppendLine('前台窗口: '+$root.Current.Name)
+  Walk $root 0
+}catch{ [void]$sb.AppendLine('读屏失败: '+$_.Exception.Message) }
+if($script:count -ge $max){ [void]$sb.AppendLine('...已截断,仅显示前 '+$max+' 个元素') }
+$sb.ToString()
+"#;
+
+// 按名找元素 → Invoke;无 Invoke 则输出中心坐标 "XY x y";找不到输出空。
+#[cfg(target_os = "windows")]
+const CLICK_PS: &str = r#"
+Add-Type -AssemblyName UIAutomationClient,UIAutomationTypes
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public static class Fg { [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow(); }
+"@
+$h=[Fg]::GetForegroundWindow()
+$root=[System.Windows.Automation.AutomationElement]::FromHandle($h)
+$cond=[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,'__TEXT__')
+$t=$root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$cond)
+if($t -eq $null){ '' ; exit }
+$r=$t.Current.BoundingRectangle
+$cx=[int]($r.X + $r.Width/2)
+$cy=[int]($r.Y + $r.Height/2)
+try{
+  $ip=$t.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+  $ip.Invoke()
+  'ok'
+}catch{
+  "XY {0} {1}" -f $cx,$cy
+}
+"#;
+
+// 抓主屏 → 缩到宽 1280 → 存 PNG,末行输出 "w h cw ch"。
+#[cfg(target_os = "windows")]
+const SHOT_PS: &str = r#"
+Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+$b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+$full=[System.Drawing.Bitmap]::new($b.Width,$b.Height)
+$g=[System.Drawing.Graphics]::FromImage($full)
+$g.CopyFromScreen($b.Location,[System.Drawing.Point]::Empty,$b.Size)
+$tw=[int]$b.Width; $th=[int]$b.Height
+if($b.Width -gt 1280){ $tw=1280; $th=[int]($b.Height*1280/$b.Width) }
+$small=[System.Drawing.Bitmap]::new($tw,$th)
+$g2=[System.Drawing.Graphics]::FromImage($small)
+$g2.InterpolationMode=[System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+$g2.DrawImage($full,0,0,$tw,$th)
+$small.Save('__PATH__',[System.Drawing.Imaging.ImageFormat]::Png)
+$g.Dispose(); $g2.Dispose(); $full.Dispose(); $small.Dispose()
+"{0} {1} {2} {3}" -f $tw,$th,$b.Width,$b.Height
+"#;
