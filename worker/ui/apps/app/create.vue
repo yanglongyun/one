@@ -25,7 +25,7 @@ const HOW = [
                 <div class="hero">
                     <div class="hero-tile"><Icon name="plus" style="width:30px;height:30px" /></div>
                     <div class="hero-title">组装一个你自己的板块</div>
-                    <div class="hero-sub">对话、任务、笔记不够用的时候,用一句话描述你想管理的东西,one 帮你生成一个专属应用:自己的数据表、自己的界面、AI 直接读写。</div>
+                    <div class="hero-sub">对话、任务、笔记不够用的时候,用一句话描述你想管理的东西,助理帮你生成一个专属应用:自己的数据表、自己的界面、AI 直接读写。</div>
                 </div>
 
                 <div class="demo-label">比如</div>

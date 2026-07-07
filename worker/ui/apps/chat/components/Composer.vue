@@ -92,7 +92,7 @@ function readDataUrl(file) {
                 ref="taRef"
                 v-model="input"
                 rows="1"
-                :placeholder="ws.connected ? '和 one 说点什么…' : '等待连接…'"
+                :placeholder="ws.connected ? '和助理说点什么…' : '等待连接…'"
                 :disabled="!ws.connected"
                 @keydown="onKeydown"
                 @input="autoGrow"

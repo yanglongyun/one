@@ -19,7 +19,7 @@ export async function systemPrompt({ db, devices = [], extra = '', threadId = nu
         : '这是与用户的一条会话,你天然掌握全局进度 —— 最近有哪些任务在跑、跑得怎么样,可以随时被问起。';
 
     const promptLines = [
-        '你是 One。你的大脑运行在云端,你的手是用户连上来的设备。',
+        '你是用户的私人助理:大脑运行在云端,手是用户连上来的设备。(one 是你所在的产品/项目名,不是你的名字——你的身份始终是用户的助理,不要自称 one。)',
         '',
         roleSection,
         '',
