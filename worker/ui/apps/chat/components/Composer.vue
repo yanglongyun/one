@@ -13,11 +13,23 @@ const images = ref([]);
 
 const canSend = computed(() => ws.connected && !chat.busy && (input.value.trim().length > 0 || images.value.length > 0));
 
+// 输入法组合态:WebKit(桌面 / 移动 WebView)确认拼音候选词的那个 Enter,
+// 往往先触发 compositionend、再 keydown 且 isComposing 已为 false —— 只判 isComposing 会漏拦、误发。
+// 自己用 compositionstart/end 兜一个「刚结束」标志,拦住紧随其后的确认 Enter。
+let composing = false;
+let justComposed = false;
+function onCompositionStart() { composing = true; }
+function onCompositionEnd() {
+    composing = false;
+    justComposed = true;
+    setTimeout(() => { justComposed = false; }, 0);
+}
+
 function onKeydown(event) {
-    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
-        event.preventDefault();
-        send();
-    }
+    if (event.key !== 'Enter' || event.shiftKey) return;      // Shift+Enter 换行
+    if (composing || justComposed || event.isComposing || event.keyCode === 229) return;  // 输入法组合中,不发
+    event.preventDefault();
+    send();
 }
 
 function send() {
@@ -95,6 +107,8 @@ function readDataUrl(file) {
                 :placeholder="ws.connected ? '和助理说点什么…' : '等待连接…'"
                 :disabled="!ws.connected"
                 @keydown="onKeydown"
+                @compositionstart="onCompositionStart"
+                @compositionend="onCompositionEnd"
                 @input="autoGrow"
             ></textarea>
             <button v-if="chat.busy" class="round stop" title="停止" @click="chat.abort()">

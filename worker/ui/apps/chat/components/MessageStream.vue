@@ -222,6 +222,13 @@ watch(() => chat.viewSeq, () => {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
+/* 消息气泡可选中复制(覆盖 WebView 默认的不可选) */
+.msg-user .bubble, .msg-ai .bubble, .msg-ai .md {
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
+    cursor: text;
+}
 .msg-ai {
     align-self: flex-start;
     max-width: 82%;
