@@ -14,6 +14,8 @@ let ws = null;
 let connected = false;
 let reconnectDelay = 1000;
 let reconnectTimer = null;
+let lastError = "";       // 最近一次连接失败原因,回给 popup 显示
+let everOpened = false;   // 本次尝试是否成功握手过(区分「地址/密码错」和「连上又断」)
 const attached = new Set(); // 已 attach debugger 的 tabId
 
 function send(obj) {
@@ -60,15 +62,17 @@ async function connect() {
   clearTimeout(reconnectTimer);
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
   const url = await wsUrl();
-  if (!url) { connected = false; setBadge(); return; }
+  if (!url) { connected = false; lastError = "未填写主域名或密码"; setBadge(); return; }
+  everOpened = false;
   try {
     ws = new WebSocket(url);
-  } catch {
+  } catch (e) {
+    lastError = "地址格式不对:" + ((e && e.message) || e);
     scheduleReconnect();
     return;
   }
   ws.onopen = async () => {
-    connected = true; reconnectDelay = 1000; setBadge();
+    connected = true; everOpened = true; lastError = ""; reconnectDelay = 1000; setBadge();
     send({ type: "hello", kind: "browser", name: await deviceName(), caps: ["browser_cdp", "screenshot"] });
   };
   ws.onmessage = (ev) => {
@@ -76,7 +80,12 @@ async function connect() {
     try { msg = JSON.parse(ev.data); } catch { return; }
     handle(msg);
   };
-  ws.onclose = () => { connected = false; setBadge(); scheduleReconnect(); };
+  ws.onclose = (ev) => {
+    connected = false; setBadge();
+    // 从没握手成功 → 多半是主域名或密码不对;连上又断 → 网络波动,静默重连即可
+    if (!everOpened) lastError = (ev && ev.reason) ? ("连接失败:" + ev.reason) : "连接失败,请检查主域名和密码是否正确";
+    scheduleReconnect();
+  };
   ws.onerror = () => { try { ws.close(); } catch {} };
 }
 
@@ -161,7 +170,7 @@ chrome.tabs.onRemoved.addListener((tabId) => attached.delete(tabId));
 chrome.runtime.onMessage.addListener((req, _sender, sendResponse) => {
   if (req && (req.cmd === "getStatus" || req.type === "status")) {
     // 异步取设备名再回包(return true 保持通道)
-    deviceName().then((name) => sendResponse({ connected, name, attached: [...attached] }));
+    deviceName().then((name) => sendResponse({ connected, name, attached: [...attached], error: connected ? "" : lastError }));
     return true;
   }
   if (req && req.cmd === "connect") { connect(); sendResponse({ ok: true }); return; }

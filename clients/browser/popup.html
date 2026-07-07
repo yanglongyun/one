@@ -18,11 +18,12 @@
   .wrap { padding: 16px; }
   .head { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
   .logo {
-    width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    box-shadow: 0 6px 18px #5b8cff44, inset 0 1px 0 #ffffff66;
+    width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; flex-shrink: 0;
+    background: linear-gradient(150deg, #5ab2f8, #2a72dc);
+    box-shadow: 0 6px 18px #2a72dc55, inset 0 1px 0 #ffffff55;
   }
-  .logo svg { width: 17px; height: 17px; display: block; }
+  .logo svg { width: 24px; height: 24px; display: block; }
+  #status.bad { color: #ff9a9a; }
   .brand { flex: 1; min-width: 0; }
   .brand b { font-size: 15px; font-weight: 800; letter-spacing: .2px; }
   .ver {
@@ -63,7 +64,7 @@
   <div class="wrap">
     <div class="head">
       <div class="logo">
-        <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 4.9 14.52 9.48 19.1 12 14.52 14.52 12 19.1 9.48 14.52 4.9 12 9.48 9.48Z"/></svg>
+        <svg viewBox="0 0 1024 1024" fill="#fff" aria-hidden="true"><circle cx="466" cy="466" r="142"/><circle cx="356" cy="524" r="96"/><circle cx="512" cy="418" r="88"/><circle cx="586" cy="504" r="110"/><circle cx="664" cy="546" r="78"/><circle cx="446" cy="596" r="86"/><circle cx="560" cy="606" r="76"/></svg>
       </div>
       <div class="brand"><b>one</b></div>
       <span id="ver" class="ver">v0.2.0</span>
