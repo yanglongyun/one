@@ -96,7 +96,7 @@ async function generate() {
     } else {
         renderError();
     }
-    loadHistory();
+    loadHistory(true);
 }
 
 async function regenerate() {
@@ -105,28 +105,45 @@ async function regenerate() {
     await generate();
 }
 
-// ── 历史:每天取最新一条,按 day DESC(排除今天) ──
-async function loadHistory() {
-    const rows = await one.sql(
+// ── 历史:每天取最新一条,按 day DESC(排除今天),每批 30 天,「加载更多」逐批取 ──
+const HIST_PAGE = 30;
+let histOffset = 0, histNoMore = false, histLoading = false;
+
+function histCard(r) {
+    return `<div class="h-card"><div class="h-day">💡 ${esc(prettyDate(r.day))}</div><div class="h-text">${esc(r.content)}</div></div>`;
+}
+
+async function loadHistory(reset = false) {
+    if (histLoading) return;
+    histLoading = true;
+    if (reset) { histOffset = 0; histNoMore = false; $('#history-list').innerHTML = ''; }
+    const rows = (await one.sql(
         'SELECT t.day, t.content FROM app_insight t ' +
         'JOIN (SELECT day, MAX(id) AS mid FROM app_insight GROUP BY day) g ON t.id = g.mid ' +
-        'WHERE t.day <> ? ORDER BY t.day DESC',
-        [TODAY]
-    );
-    const list = rows || [];
-    $('#history-wrap').style.display = list.length ? 'block' : 'none';
-    $('#history-list').innerHTML = list.map((r) => `
-        <div class="h-card">
-            <div class="h-day">💡 ${esc(prettyDate(r.day))}</div>
-            <div class="h-text">${esc(r.content)}</div>
-        </div>`).join('');
+        'WHERE t.day <> ? ORDER BY t.day DESC LIMIT ? OFFSET ?',
+        [TODAY, HIST_PAGE, histOffset],
+    )) || [];
+    histOffset += rows.length;
+    if (rows.length < HIST_PAGE) histNoMore = true;
+    $('#more-history')?.remove();
+    $('#history-list').insertAdjacentHTML('beforeend', rows.map(histCard).join(''));
+    $('#history-wrap').style.display = $('#history-list').children.length ? 'block' : 'none';
+    if (!histNoMore) {
+        const btn = document.createElement('button');
+        btn.id = 'more-history';
+        btn.textContent = '加载更多历史';
+        btn.style.cssText = 'display:block;width:100%;margin-top:10px;padding:11px;border:0;background:transparent;color:#e0952b;font:inherit;font-weight:600;cursor:pointer';
+        btn.addEventListener('click', () => loadHistory());
+        $('#history-list').insertAdjacentElement('afterend', btn);
+    }
+    histLoading = false;
 }
 
 async function init() {
     // 表 app_insight 由平台在打开应用前按 index.sql 建好
     $('#today-date').textContent = prettyDate(TODAY);
     const today = await latestForDay(TODAY);
-    loadHistory();
+    loadHistory(true);
     if (today) {
         renderToday(today);
     } else {

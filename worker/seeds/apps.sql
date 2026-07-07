@@ -196,54 +196,75 @@ function fmtTime(ts) {
     return `${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
-async function load() {
-    const rows = await one.sql(''SELECT id, content, color, pinned, created_at, updated_at FROM app_notes ORDER BY pinned DESC, id DESC'');
-    render(rows || []);
+// ── 分页:每页 30 条,触底自动加载下一页;增删改色就地更新,不整表重载 ──
+const PAGE = 30;
+let offset = 0, loading = false, noMore = false;
+const seen = new Map(); // id -> note 对象(供事件回调取用)
+
+async function load(reset = false) {
+    if (loading) return;
+    loading = true;
+    if (reset) { offset = 0; noMore = false; seen.clear(); $(''#board'').innerHTML = ''''; }
+    const rows = (await one.sql(
+        ''SELECT id, content, color, pinned, created_at, updated_at FROM app_notes ORDER BY pinned DESC, id DESC LIMIT ? OFFSET ?'',
+        [PAGE, offset],
+    )) || [];
+    rows.forEach((n) => seen.set(n.id, n));
+    offset += rows.length;
+    if (rows.length < PAGE) noMore = true;
+    appendCards(rows);
+    $(''#empty'').style.display = seen.size ? ''none'' : ''block'';
+    loading = false;
 }
 
-function render(items) {
-    $(''#empty'').style.display = items.length ? ''none'' : ''block'';
+function noteHtml(n) {
+    const c = colorOf(n.color);
+    const body = bodyLines(n).map((l) => `<p>${esc(l)}</p>`).join('''');
+    const dots = COLORS.map((cc) => `<button class="cdot cdot-${cc}${c === cc ? '' on'' : ''''}" data-color="${cc}"></button>`).join('''');
+    return `<div class="note note-${c}" data-id="${n.id}">
+        ${n.pinned ? ''<span class="pin">📌</span>'' : ''''}
+        <div class="note-title">${esc(titleOf(n))}</div>
+        ${body ? `<div class="note-body">${body}</div>` : ''''}
+        <div class="note-foot">
+            <span class="time">${fmtTime(n.updated_at || n.created_at)}</span>
+            <span class="note-acts">${dots}<button class="note-trash" data-act="del">🗑</button></span>
+        </div>
+    </div>`;
+}
+
+function bindCard(el) {
+    const note = seen.get(Number(el.dataset.id));
+    if (!note) return;
+    el.addEventListener(''click'', (e) => { if (e.target.closest(''.note-acts'')) return; openEdit(note); });
+    el.querySelectorAll(''.cdot'').forEach((d) => d.addEventListener(''click'', (e) => { e.stopPropagation(); setColor(el, note, d.dataset.color); }));
+    el.querySelector(''[data-act=del]'').addEventListener(''click'', (e) => { e.stopPropagation(); del(el, note); });
+}
+
+function appendCards(items) {
     const board = $(''#board'');
-    board.innerHTML = items.map((n) => {
-        const c = colorOf(n.color);
-        const body = bodyLines(n).map((l) => `<p>${esc(l)}</p>`).join('''');
-        const dots = COLORS.map((cc) => `<button class="cdot cdot-${cc}${c === cc ? '' on'' : ''''}" data-color="${cc}"></button>`).join('''');
-        return `<div class="note note-${c}" data-id="${n.id}">
-            ${n.pinned ? ''<span class="pin">📌</span>'' : ''''}
-            <div class="note-title">${esc(titleOf(n))}</div>
-            ${body ? `<div class="note-body">${body}</div>` : ''''}
-            <div class="note-foot">
-                <span class="time">${fmtTime(n.updated_at || n.created_at)}</span>
-                <span class="note-acts">${dots}<button class="note-trash" data-act="del">🗑</button></span>
-            </div>
-        </div>`;
-    }).join('''');
-
-    board.querySelectorAll(''.note'').forEach((el) => {
-        const id = Number(el.dataset.id);
-        const note = items.find((x) => x.id === id);
-        el.addEventListener(''click'', (e) => {
-            if (e.target.closest(''.note-acts'')) return;
-            openEdit(note);
-        });
-        el.querySelectorAll(''.cdot'').forEach((d) => d.addEventListener(''click'', (e) => {
-            e.stopPropagation();
-            setColor(note, d.dataset.color);
-        }));
-        el.querySelector(''[data-act=del]'').addEventListener(''click'', (e) => { e.stopPropagation(); del(note); });
-    });
+    const tmp = document.createElement(''div'');
+    tmp.innerHTML = items.map(noteHtml).join('''');
+    while (tmp.firstElementChild) {
+        const el = tmp.firstElementChild;
+        board.appendChild(el);
+        bindCard(el);
+    }
 }
 
-async function setColor(n, c) {
+async function setColor(el, n, c) {
     if (colorOf(n.color) === c) return;
     await one.sql(''UPDATE app_notes SET color = ?, updated_at = ? WHERE id = ?'', [c, Date.now(), n.id]);
-    load();
+    n.color = c;
+    el.className = ''note note-'' + colorOf(c);
+    el.querySelectorAll(''.cdot'').forEach((d) => d.classList.toggle(''on'', d.dataset.color === c));
 }
 
-async function del(n) {
+async function del(el, n) {
     if (!confirm(''删除这条笔记?'')) return;
     await one.sql(''DELETE FROM app_notes WHERE id = ?'', [n.id]);
-    load();
+    seen.delete(n.id);
+    el.remove();
+    $(''#empty'').style.display = seen.size ? ''none'' : ''block'';
 }
 
 // ── 弹窗 ──
@@ -276,7 +297,7 @@ async function save() {
         await one.sql(''INSERT INTO app_notes (content, color, pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'', [content, form.color, pinned, now, now]);
     }
     closeModal();
-    load();
+    load(true);
 }
 
 $(''#btn-new'').addEventListener(''click'', openCreate);
@@ -286,7 +307,15 @@ $(''#f-content'').addEventListener(''input'', (e) => { form.content = e.target.v
 $(''#f-pin'').addEventListener(''click'', () => { form.pinned = !form.pinned; $(''#f-pin'').classList.toggle(''on'', form.pinned); });
 $(''#modal'').addEventListener(''click'', (e) => { if (e.target === $(''#modal'')) closeModal(); });
 
-// 数据表 app_notes 由平台在打开应用前按 index.sql 建好,这里直接加载
+// 触底哨兵:滚到接近底部就自动加载下一页
+const sentinel = document.createElement(''div'');
+sentinel.style.cssText = ''height:1px'';
+$(''#board'').insertAdjacentElement(''afterend'', sentinel);
+new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !loading && !noMore) load();
+}, { rootMargin: ''240px'' }).observe(sentinel);
+
+// 数据表 app_notes 由平台在打开应用前按 index.sql 建好,这里加载首页
 load();
 ',1,1783051262373);
 INSERT INTO codes (app_id,filename,content,version,created_at) VALUES ((SELECT id FROM apps WHERE slug='notes'),'index.sql','-- 笔记小应用数据表(平台打开应用时自动执行,幂等)
@@ -501,7 +530,12 @@ function itemHtml(t, kids) {
     </div>` + (children.length ? `<div class="sub-list">${children.map((k) => itemHtml(k, null)).join('''')}</div>` : '''');
 }
 
+const DONE_PAGE = 20;
+let doneShown = DONE_PAGE;         // 已完成:先渲染这么多,「加载更多」逐批 +20(进行中始终全显)
+let last = { active: [], done: [], kids: {} };
+
 function render(active, done, kids) {
+    last = { active, done, kids };
     const total = active.length + done.length;
     $(''#empty'').style.display = total ? ''none'' : ''block'';
 
@@ -511,7 +545,11 @@ function render(active, done, kids) {
 
     $(''#sec-done'').style.display = done.length ? ''block'' : ''none'';
     $(''#c-done'').textContent = done.length;
-    $(''#list-done'').innerHTML = done.map((t) => itemHtml(t, kids)).join('''');
+    const rest = done.length - doneShown;
+    $(''#list-done'').innerHTML = done.slice(0, doneShown).map((t) => itemHtml(t, kids)).join('''')
+        + (rest > 0
+            ? `<button data-act="more" style="display:block;width:100%;margin-top:8px;padding:11px;border:0;background:transparent;color:#3b9bf5;font:inherit;font-weight:600;cursor:pointer">加载更多已完成(还有 ${rest} 条)</button>`
+            : '''');
 
     // 事件绑定
     document.querySelectorAll(''.item'').forEach((el) => {
@@ -520,6 +558,10 @@ function render(active, done, kids) {
         el.querySelector(''[data-act=toggle]'')?.addEventListener(''click'', () => toggle(t));
         el.querySelector(''[data-act=del]'')?.addEventListener(''click'', () => del(t));
         el.querySelector(''[data-act=split]'')?.addEventListener(''click'', () => split(t));
+    });
+    $(''#list-done'').querySelector(''[data-act=more]'')?.addEventListener(''click'', () => {
+        doneShown += DONE_PAGE;
+        render(last.active, last.done, last.kids);
     });
 }
 
@@ -757,17 +799,40 @@ const PRESETS = [
     { name: ''陆沉'', face: ''🌙'', tagline: ''沉稳内敛的他'', persona: ''成熟沉稳、有主见的男生,像可靠的港湾,话不多但句句暖,偶尔幽默一下'' },
 ];
 
+const PAGE = 30;
 let cfg = null;          // { name, persona }
-let msgs = [];           // { role:''me''|''ta'', content }
+let msgs = [];           // { id?, role:''me''|''ta'', content }
 let sending = false;
+let oldestId = null, hasMore = false, loadingOlder = false;
 
 async function init() {
     // 表由平台在打开应用前按 index.sql 建好,这里直接读数据
     const rows = await one.sql(''SELECT name, persona FROM app_love_config WHERE id = 1'');
     cfg = rows && rows[0] ? rows[0] : null;
     if (!cfg) { openSetup(); return; }
-    msgs = (await one.sql(''SELECT role, content FROM app_love_msgs ORDER BY id ASC'')) || [];
+    // 只取最近 PAGE 条(倒序取回再翻正);更早的上滑再加载,不一次性全捞
+    const recent = (await one.sql(''SELECT id, role, content FROM app_love_msgs ORDER BY id DESC LIMIT ?'', [PAGE])) || [];
+    msgs = recent.reverse();
+    oldestId = msgs.length ? msgs[0].id : null;
+    hasMore = recent.length === PAGE;
     render();
+}
+
+// 上滑到顶:加载更早的一页,并保持视口锚在原来那条消息上(不跳)
+async function loadOlder() {
+    if (loadingOlder || !hasMore || oldestId == null) return;
+    loadingOlder = true;
+    const older = (await one.sql(''SELECT id, role, content FROM app_love_msgs WHERE id < ? ORDER BY id DESC LIMIT ?'', [oldestId, PAGE])) || [];
+    if (older.length) {
+        const chat = $(''#chat'');
+        const prevH = chat.scrollHeight, prevTop = chat.scrollTop;
+        msgs = older.reverse().concat(msgs);
+        oldestId = msgs[0].id;
+        paint();
+        chat.scrollTop = chat.scrollHeight - prevH + prevTop;
+    }
+    hasMore = older.length === PAGE;
+    loadingOlder = false;
 }
 
 // ── 设定 TA:两张角色卡,点谁就是谁 ──
@@ -794,7 +859,8 @@ async function startLove(preset) {
 
 // ── 渲染 ──
 function avatarFace() { return PRESETS.find((p) => p.name === cfg?.name)?.face || ''💕''; }
-function render() {
+// 只渲染,不动滚动(上滑加载更早时用它,配合手动锚定滚动)
+function paint() {
     const stream = $(''#stream'');
     if (!msgs.length && !sending) {
         stream.innerHTML = `<div class="hello"><div class="h-face">💗</div>
@@ -806,8 +872,9 @@ function render() {
         if (m.role === ''me'') return `<div class="msg me"><div class="bubble">${esc(m.content)}</div></div>`;
         return `<div class="msg ta"><span class="avatar">${avatarFace()}</span><div class="col"><div class="ta-name">${esc(cfg?.name || ''TA'')}</div><div class="bubble">${esc(m.content)}</div></div></div>`;
     }).join('''') + (sending ? `<div class="msg ta"><span class="avatar">${avatarFace()}</span><div class="col"><div class="ta-name">${esc(cfg?.name || ''TA'')}</div><div class="typing"><i></i><i></i><i></i></div></div></div>` : '''');
-    toBottom();
 }
+// 渲染并滚到底(初始 / 新消息用)
+function render() { paint(); toBottom(); }
 function toBottom() { const c = $(''#chat''); requestAnimationFrame(() => { c.scrollTop = c.scrollHeight; }); }
 
 // ── 发送 & 回复:走 agent 任务,让 TA 自己查历史/记忆,只允许它回一个 JSON 对象 ──
@@ -854,6 +921,7 @@ async function send() {
 }
 
 // ── 事件 ──
+$(''#chat'').addEventListener(''scroll'', () => { if ($(''#chat'').scrollTop < 80) loadOlder(); });
 $(''#send'').addEventListener(''click'', send);
 $(''#input'').addEventListener(''keydown'', (e) => { if (e.key === ''Enter'' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } });
 $(''#input'').addEventListener(''input'', (e) => { const el = e.target; el.style.height = ''auto''; el.style.height = Math.min(el.scrollHeight, 120) + ''px''; });
@@ -1128,7 +1196,7 @@ async function generate() {
     } else {
         renderError();
     }
-    loadHistory();
+    loadHistory(true);
 }
 
 async function regenerate() {
@@ -1137,28 +1205,45 @@ async function regenerate() {
     await generate();
 }
 
-// ── 历史:每天取最新一条,按 day DESC(排除今天) ──
-async function loadHistory() {
-    const rows = await one.sql(
+// ── 历史:每天取最新一条,按 day DESC(排除今天),每批 30 天,「加载更多」逐批取 ──
+const HIST_PAGE = 30;
+let histOffset = 0, histNoMore = false, histLoading = false;
+
+function histCard(r) {
+    return `<div class="h-card"><div class="h-day">💡 ${esc(prettyDate(r.day))}</div><div class="h-text">${esc(r.content)}</div></div>`;
+}
+
+async function loadHistory(reset = false) {
+    if (histLoading) return;
+    histLoading = true;
+    if (reset) { histOffset = 0; histNoMore = false; $(''#history-list'').innerHTML = ''''; }
+    const rows = (await one.sql(
         ''SELECT t.day, t.content FROM app_insight t '' +
         ''JOIN (SELECT day, MAX(id) AS mid FROM app_insight GROUP BY day) g ON t.id = g.mid '' +
-        ''WHERE t.day <> ? ORDER BY t.day DESC'',
-        [TODAY]
-    );
-    const list = rows || [];
-    $(''#history-wrap'').style.display = list.length ? ''block'' : ''none'';
-    $(''#history-list'').innerHTML = list.map((r) => `
-        <div class="h-card">
-            <div class="h-day">💡 ${esc(prettyDate(r.day))}</div>
-            <div class="h-text">${esc(r.content)}</div>
-        </div>`).join('''');
+        ''WHERE t.day <> ? ORDER BY t.day DESC LIMIT ? OFFSET ?'',
+        [TODAY, HIST_PAGE, histOffset],
+    )) || [];
+    histOffset += rows.length;
+    if (rows.length < HIST_PAGE) histNoMore = true;
+    $(''#more-history'')?.remove();
+    $(''#history-list'').insertAdjacentHTML(''beforeend'', rows.map(histCard).join(''''));
+    $(''#history-wrap'').style.display = $(''#history-list'').children.length ? ''block'' : ''none'';
+    if (!histNoMore) {
+        const btn = document.createElement(''button'');
+        btn.id = ''more-history'';
+        btn.textContent = ''加载更多历史'';
+        btn.style.cssText = ''display:block;width:100%;margin-top:10px;padding:11px;border:0;background:transparent;color:#e0952b;font:inherit;font-weight:600;cursor:pointer'';
+        btn.addEventListener(''click'', () => loadHistory());
+        $(''#history-list'').insertAdjacentElement(''afterend'', btn);
+    }
+    histLoading = false;
 }
 
 async function init() {
     // 表 app_insight 由平台在打开应用前按 index.sql 建好
     $(''#today-date'').textContent = prettyDate(TODAY);
     const today = await latestForDay(TODAY);
-    loadHistory();
+    loadHistory(true);
     if (today) {
         renderToday(today);
     } else {

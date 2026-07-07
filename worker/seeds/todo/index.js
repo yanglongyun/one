@@ -40,7 +40,12 @@ function itemHtml(t, kids) {
     </div>` + (children.length ? `<div class="sub-list">${children.map((k) => itemHtml(k, null)).join('')}</div>` : '');
 }
 
+const DONE_PAGE = 20;
+let doneShown = DONE_PAGE;         // 已完成:先渲染这么多,「加载更多」逐批 +20(进行中始终全显)
+let last = { active: [], done: [], kids: {} };
+
 function render(active, done, kids) {
+    last = { active, done, kids };
     const total = active.length + done.length;
     $('#empty').style.display = total ? 'none' : 'block';
 
@@ -50,7 +55,11 @@ function render(active, done, kids) {
 
     $('#sec-done').style.display = done.length ? 'block' : 'none';
     $('#c-done').textContent = done.length;
-    $('#list-done').innerHTML = done.map((t) => itemHtml(t, kids)).join('');
+    const rest = done.length - doneShown;
+    $('#list-done').innerHTML = done.slice(0, doneShown).map((t) => itemHtml(t, kids)).join('')
+        + (rest > 0
+            ? `<button data-act="more" style="display:block;width:100%;margin-top:8px;padding:11px;border:0;background:transparent;color:#3b9bf5;font:inherit;font-weight:600;cursor:pointer">加载更多已完成(还有 ${rest} 条)</button>`
+            : '');
 
     // 事件绑定
     document.querySelectorAll('.item').forEach((el) => {
@@ -59,6 +68,10 @@ function render(active, done, kids) {
         el.querySelector('[data-act=toggle]')?.addEventListener('click', () => toggle(t));
         el.querySelector('[data-act=del]')?.addEventListener('click', () => del(t));
         el.querySelector('[data-act=split]')?.addEventListener('click', () => split(t));
+    });
+    $('#list-done').querySelector('[data-act=more]')?.addEventListener('click', () => {
+        doneShown += DONE_PAGE;
+        render(last.active, last.done, last.kids);
     });
 }
 

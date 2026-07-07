@@ -10,17 +10,40 @@ const PRESETS = [
     { name: '陆沉', face: '🌙', tagline: '沉稳内敛的他', persona: '成熟沉稳、有主见的男生,像可靠的港湾,话不多但句句暖,偶尔幽默一下' },
 ];
 
+const PAGE = 30;
 let cfg = null;          // { name, persona }
-let msgs = [];           // { role:'me'|'ta', content }
+let msgs = [];           // { id?, role:'me'|'ta', content }
 let sending = false;
+let oldestId = null, hasMore = false, loadingOlder = false;
 
 async function init() {
     // 表由平台在打开应用前按 index.sql 建好,这里直接读数据
     const rows = await one.sql('SELECT name, persona FROM app_love_config WHERE id = 1');
     cfg = rows && rows[0] ? rows[0] : null;
     if (!cfg) { openSetup(); return; }
-    msgs = (await one.sql('SELECT role, content FROM app_love_msgs ORDER BY id ASC')) || [];
+    // 只取最近 PAGE 条(倒序取回再翻正);更早的上滑再加载,不一次性全捞
+    const recent = (await one.sql('SELECT id, role, content FROM app_love_msgs ORDER BY id DESC LIMIT ?', [PAGE])) || [];
+    msgs = recent.reverse();
+    oldestId = msgs.length ? msgs[0].id : null;
+    hasMore = recent.length === PAGE;
     render();
+}
+
+// 上滑到顶:加载更早的一页,并保持视口锚在原来那条消息上(不跳)
+async function loadOlder() {
+    if (loadingOlder || !hasMore || oldestId == null) return;
+    loadingOlder = true;
+    const older = (await one.sql('SELECT id, role, content FROM app_love_msgs WHERE id < ? ORDER BY id DESC LIMIT ?', [oldestId, PAGE])) || [];
+    if (older.length) {
+        const chat = $('#chat');
+        const prevH = chat.scrollHeight, prevTop = chat.scrollTop;
+        msgs = older.reverse().concat(msgs);
+        oldestId = msgs[0].id;
+        paint();
+        chat.scrollTop = chat.scrollHeight - prevH + prevTop;
+    }
+    hasMore = older.length === PAGE;
+    loadingOlder = false;
 }
 
 // ── 设定 TA:两张角色卡,点谁就是谁 ──
@@ -47,7 +70,8 @@ async function startLove(preset) {
 
 // ── 渲染 ──
 function avatarFace() { return PRESETS.find((p) => p.name === cfg?.name)?.face || '💕'; }
-function render() {
+// 只渲染,不动滚动(上滑加载更早时用它,配合手动锚定滚动)
+function paint() {
     const stream = $('#stream');
     if (!msgs.length && !sending) {
         stream.innerHTML = `<div class="hello"><div class="h-face">💗</div>
@@ -59,8 +83,9 @@ function render() {
         if (m.role === 'me') return `<div class="msg me"><div class="bubble">${esc(m.content)}</div></div>`;
         return `<div class="msg ta"><span class="avatar">${avatarFace()}</span><div class="col"><div class="ta-name">${esc(cfg?.name || 'TA')}</div><div class="bubble">${esc(m.content)}</div></div></div>`;
     }).join('') + (sending ? `<div class="msg ta"><span class="avatar">${avatarFace()}</span><div class="col"><div class="ta-name">${esc(cfg?.name || 'TA')}</div><div class="typing"><i></i><i></i><i></i></div></div></div>` : '');
-    toBottom();
 }
+// 渲染并滚到底(初始 / 新消息用)
+function render() { paint(); toBottom(); }
 function toBottom() { const c = $('#chat'); requestAnimationFrame(() => { c.scrollTop = c.scrollHeight; }); }
 
 // ── 发送 & 回复:走 agent 任务,让 TA 自己查历史/记忆,只允许它回一个 JSON 对象 ──
@@ -107,6 +132,7 @@ async function send() {
 }
 
 // ── 事件 ──
+$('#chat').addEventListener('scroll', () => { if ($('#chat').scrollTop < 80) loadOlder(); });
 $('#send').addEventListener('click', send);
 $('#input').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } });
 $('#input').addEventListener('input', (e) => { const el = e.target; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; });
