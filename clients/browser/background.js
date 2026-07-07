@@ -1,4 +1,4 @@
-// one 浏览器手 — 浏览器插件作为 one 的一个「执行层」。
+// one — 浏览器插件作为 one 的一个「执行层」。
 //
 // 连接:与所有客户端统一,只需「主域名 + 密码」→ wss://{主域名}/api/realtime/ws?password=
 // 模型:worker 广播 chat.tool.calls 给各执行层;本插件**自己捕捉归属自己的 browser_cdp / screenshot**,

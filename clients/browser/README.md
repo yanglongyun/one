@@ -1,4 +1,4 @@
-# one 浏览器手
+# one
 
 这是 one 的 Chrome 扩展执行层。它连接你的 one Worker,接收 AI 下发的浏览器工具调用,再通过 Chrome DevTools Protocol(CDP) 操作当前浏览器。
 
@@ -21,7 +21,7 @@ wss://<你的 one 地址>/api/realtime/ws?password=<访问密码>&role=browser
 
 ## 能力
 
-浏览器手目前响应两个工具:
+浏览器插件目前响应两个工具:
 
 | 工具 | 作用 |
 |---|---|
