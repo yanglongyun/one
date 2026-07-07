@@ -1,7 +1,12 @@
 package com.oneapp.one
 
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Shader
 import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.View
@@ -104,15 +109,28 @@ object Ui {
     fun lp(width: Int, height: Int, topMargin: Int = 0): LinearLayout.LayoutParams =
         LinearLayout.LayoutParams(width, height).apply { this.topMargin = topMargin }
 
-    // 品牌方块「1」
-    fun brandTile(ctx: Context): TextView = TextView(ctx).apply {
-        text = "1"
-        setTextColor(Color.WHITE)
-        textSize = 28f
-        gravity = android.view.Gravity.CENTER
-        typeface = android.graphics.Typeface.create(android.graphics.Typeface.SERIF, android.graphics.Typeface.BOLD)
-        background = GradientDrawable(
-            GradientDrawable.Orientation.TL_BR, intArrayOf(candy, candyD),
-        ).apply { cornerRadius = dp(ctx, 16).toFloat() }
+    // 品牌方块:糖果蓝圆角底 + 白色软糖圆簇(与桌面 / 应用图标同一套 c5-tilt 造型,程序化绘制)
+    fun brandTile(ctx: Context): View = object : View(ctx) {
+        private val bg = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val fg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+        private val rf = RectF()
+        // c5-tilt 的 7 个白圆(1024 视图坐标:cx, cy, r)
+        private val blobs = arrayOf(
+            floatArrayOf(466f, 466f, 142f), floatArrayOf(356f, 524f, 96f),
+            floatArrayOf(512f, 418f, 88f), floatArrayOf(586f, 504f, 110f),
+            floatArrayOf(664f, 546f, 78f), floatArrayOf(446f, 596f, 86f),
+            floatArrayOf(560f, 606f, 76f),
+        )
+        override fun onDraw(canvas: Canvas) {
+            val w = width.toFloat(); val h = height.toFloat()
+            bg.shader = LinearGradient(w * 0.15f, 0f, w * 0.85f, h, candy, candyD, Shader.TileMode.CLAMP)
+            rf.set(0f, 0f, w, h)
+            val r = dp(context, 16).toFloat()
+            canvas.drawRoundRect(rf, r, r, bg)
+            // 圆簇按桌面同比例(svg 34 / tile 56)居中缩放
+            val s = (w * 34f / 56f) / 1024f
+            val ox = w / 2f; val oy = h / 2f
+            for (b in blobs) canvas.drawCircle(ox + (b[0] - 512f) * s, oy + (b[1] - 512f) * s, b[2] * s, fg)
+        }
     }
 }

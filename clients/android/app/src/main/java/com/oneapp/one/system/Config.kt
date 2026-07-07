@@ -10,7 +10,11 @@ object Config {
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("one-device", Context.MODE_PRIVATE)
 
     fun worker(ctx: Context): String =
-        (prefs(ctx).getString("worker", null) ?: BuildConfig.WORKER_URL).trim().trimEnd('/')
+        normalizeUrl((prefs(ctx).getString("worker", null) ?: BuildConfig.WORKER_URL).trim().trimEnd('/'))
+
+    // 裸域名补 https:WebView loadUrl 对无 scheme 的串会当 http / 搜索,直接打到死页面。
+    private fun normalizeUrl(raw: String): String =
+        if (raw.isEmpty() || raw.startsWith("http://") || raw.startsWith("https://")) raw else "https://$raw"
 
     fun password(ctx: Context): String = (prefs(ctx).getString("password", "") ?: "").trim()
 
@@ -23,7 +27,7 @@ object Config {
 
     fun save(ctx: Context, worker: String, password: String, name: String) {
         prefs(ctx).edit()
-            .putString("worker", worker.trim().trimEnd('/'))
+            .putString("worker", normalizeUrl(worker.trim().trimEnd('/')))
             .putString("password", password.trim())
             .putString("name", name.trim())
             .putBoolean("ready", true)

@@ -46,6 +46,16 @@
     animation: rise .55s var(--spring) both;
   }
   @keyframes rise { from { opacity: 0; transform: translateY(16px) scale(.97); } to { opacity: 1; transform: none; } }
+  @keyframes slide { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+  .step { animation: slide .3s var(--ease) both; }
+
+  /* 步进指示 */
+  .stepper { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 18px; }
+  .stepper i {
+    width: 22px; height: 4px; border-radius: 99px; background: var(--line);
+    transition: background .25s var(--ease);
+  }
+  .stepper i.on { background: linear-gradient(90deg, #62b4fa, var(--candy-deep)); }
 
   .head { text-align: center; }
   .brand {
@@ -56,8 +66,9 @@
     color: #fff; font-weight: 800; font-size: 26px;
     box-shadow: var(--gloss), 0 8px 20px -4px rgba(43, 134, 228, .5);
   }
-  .title { font-size: 20px; font-weight: 800; letter-spacing: .01em; }
-  .sub { margin-top: 4px; font-size: 13px; color: var(--ink-3); font-weight: 500; }
+  .title { font-size: 20px; font-weight: 800; letter-spacing: .01em; text-align: center; }
+  .sub { margin-top: 4px; font-size: 13px; color: var(--ink-3); font-weight: 500; text-align: center; }
+  .sub2 { margin: 4px 0 2px; font-size: 12.5px; color: var(--ink-3); font-weight: 500; text-align: center; line-height: 1.5; }
 
   .field {
     width: 100%; height: 46px; margin-top: 12px; padding: 0 15px;
@@ -80,20 +91,27 @@
   }
   .btn:hover { filter: brightness(1.04); transform: translateY(-1px); }
   .btn:active { transform: translateY(1px); }
+  .btn:disabled { filter: saturate(.6) brightness(1.05); cursor: default; transform: none; }
   .msg { margin-top: 10px; min-height: 16px; text-align: center; font-size: 12px; color: var(--bad); font-weight: 500; }
   .msg.ok { color: var(--ok); }
 
-  .rows { margin-top: 8px; border-top: 1px solid var(--line-soft); }
+  .backlink {
+    margin-top: 12px; text-align: center; font-size: 12.5px;
+    color: var(--ink-3); font-weight: 600; cursor: pointer;
+  }
+  .backlink:hover { color: var(--candy-deep); }
+
+  .rows { margin-top: 4px; border-top: 1px solid var(--line-soft); }
   .row {
     display: flex; align-items: center; gap: 8px;
-    padding: 11px 2px; border-bottom: 1px solid var(--line-soft);
+    padding: 12px 2px; border-bottom: 1px solid var(--line-soft);
     font-size: 13px; font-weight: 500;
   }
   .row:last-child { border-bottom: 0; }
   .row .grow { flex: 1; }
   .row .label { color: var(--ink2); }
   .row .cap { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
-  .sect { padding: 14px 2px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--ink-3); }
+  .sect { padding: 16px 2px 4px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--ink-3); }
 
   .pill {
     display: inline-flex; align-items: center; gap: 6px;
@@ -134,45 +152,61 @@
 </head>
 <body>
   <div class="card" id="card" style="display:none">
-    <div class="head">
-      <div class="brand"><svg width="34" height="34" viewBox="0 0 1024 1024" fill="#fff" aria-hidden="true"><circle cx="466" cy="466" r="142"/><circle cx="356" cy="524" r="96"/><circle cx="512" cy="418" r="88"/><circle cx="586" cy="504" r="110"/><circle cx="664" cy="546" r="78"/><circle cx="446" cy="596" r="86"/><circle cx="560" cy="606" r="76"/></svg></div>
-      <div class="title">one</div>
-      <div class="sub">连接到你的云端</div>
-    </div>
 
-    <input class="field" id="worker" placeholder="主域名 https://your-worker.example.com" spellcheck="false" autocapitalize="off" autocorrect="off" />
-    <input class="field" id="password" type="password" placeholder="访问密码" />
-    <input class="field" id="name" placeholder="设备名(唯一,如 air)" spellcheck="false" autocapitalize="off" autocorrect="off" />
-    <button class="btn" id="btn">连接</button>
-    <div class="msg" id="msg"></div>
+    <!-- ═══ 第 1 步 · 连接 ═══ -->
+    <section id="step1" class="step">
+      <div class="head">
+        <div class="brand"><svg width="34" height="34" viewBox="0 0 1024 1024" fill="#fff" aria-hidden="true"><circle cx="466" cy="466" r="142"/><circle cx="356" cy="524" r="96"/><circle cx="512" cy="418" r="88"/><circle cx="586" cy="504" r="110"/><circle cx="664" cy="546" r="78"/><circle cx="446" cy="596" r="86"/><circle cx="560" cy="606" r="76"/></svg></div>
+        <div class="title">one</div>
+        <div class="sub">连接到你的云端</div>
+      </div>
 
-    <div class="rows" id="basics">
-      <div class="row">
-        <span class="label">连接状态</span>
-        <span class="grow"></span>
-        <span class="pill no" id="conn"><span class="dot"></span>离线</span>
-      </div>
-      <div class="row">
-        <span>
-          <div class="label">开机自启</div>
-          <div class="cap">登录系统后自动在托盘待命</div>
-        </span>
-        <span class="grow"></span>
-        <label class="switch">
-          <input type="checkbox" id="autostart" />
-          <span class="track"></span>
-          <span class="knob"></span>
-        </label>
-      </div>
-    </div>
+      <input class="field" id="worker" placeholder="主域名 https://your-worker.example.com" spellcheck="false" autocapitalize="off" autocorrect="off" />
+      <input class="field" id="password" type="password" placeholder="访问密码" />
+      <input class="field" id="name" placeholder="设备名(唯一,如 air)" spellcheck="false" autocapitalize="off" autocorrect="off" />
+      <button class="btn" id="btn-next">下一步 →</button>
+      <div class="msg" id="msg"></div>
+    </section>
 
-    <div id="perms" style="display:none">
-      <div class="sect">MACOS 权限 · 电脑控制 / 截屏需要</div>
-      <div class="rows" style="border-top:0">
-        <div class="row"><span class="label">辅助功能</span><span class="grow"></span><span id="p-ax"></span></div>
-        <div class="row"><span class="label">屏幕录制</span><span class="grow"></span><span id="p-sc"></span></div>
+    <!-- ═══ 第 2 步 · 授权与设置 ═══ -->
+    <section id="step2" class="step" style="display:none">
+      <div class="stepper"><i></i><i class="on"></i></div>
+      <div class="title">授权与设置</div>
+      <div class="sub2">授权后 one 才能替你操控这台电脑</div>
+
+      <div class="rows">
+        <div class="row">
+          <span class="label">连接状态</span>
+          <span class="grow"></span>
+          <span class="pill no" id="conn"><span class="dot"></span>离线</span>
+        </div>
+        <div class="row">
+          <span>
+            <div class="label">开机自启</div>
+            <div class="cap">登录系统后自动在托盘待命</div>
+          </span>
+          <span class="grow"></span>
+          <label class="switch">
+            <input type="checkbox" id="autostart" />
+            <span class="track"></span>
+            <span class="knob"></span>
+          </label>
+        </div>
       </div>
-    </div>
+
+      <div id="perms" style="display:none">
+        <div class="sect">MACOS 权限 · 电脑控制 / 截屏需要</div>
+        <div class="rows" style="border-top:0">
+          <div class="row"><span class="label">辅助功能</span><span class="grow"></span><span id="p-ax"></span></div>
+          <div class="row"><span class="label">屏幕录制</span><span class="grow"></span><span id="p-sc"></span></div>
+        </div>
+      </div>
+
+      <button class="btn" id="btn-enter">进入 one</button>
+      <div class="msg" id="msg2"></div>
+      <div class="backlink" id="back">‹ 修改连接信息</div>
+    </section>
+
   </div>
 
   <script>
@@ -186,29 +220,35 @@
     try { label = window.__TAURI__.webviewWindow.getCurrentWebviewWindow().label; } catch (e) {}
 
     const go = (worker, password) => {
-      let base = worker.trim().replace(/\/+$/, '');
+      let base = (worker || '').trim().replace(/\/+$/, '');
       // 裸域名补 https,否则 location.href 会把它当相对路径(基于 tauri://localhost 解析成死地址 → 白屏)
       if (!/^https?:\/\//i.test(base)) base = 'https://' + base;
       // 带上密码让网页自动登录(hash 不会发给服务器,读完即清)
       location.href = base + '/#auth=' + encodeURIComponent(password || '');
     };
 
+    // ── 两步切换 ──
+    let step2Live = false;
+    function showStep(n) {
+      $('step1').style.display = n === 1 ? 'block' : 'none';
+      $('step2').style.display = n === 2 ? 'block' : 'none';
+      if (n === 2 && !step2Live) {
+        step2Live = true;
+        renderConn(false); refreshPerms(); pollConn();
+        setInterval(pollConn, 3000);
+      }
+    }
+
     async function boot() {
       const s = await invoke('app_state');
-      // 主窗口且已配置:直接进 worker;设置窗口永远显示表单
+      // 已配置的主窗口:不打断,直接进云端
       if (s.configured && label !== 'settings') { go(s.worker, s.password); return; }
       $('worker').value = s.worker || '';
       $('name').value = s.name || '';
       $('autostart').checked = !!s.autostart;
       $('card').style.display = 'block';
-      // 首连页只留「三项 + 连接」;状态灯 / 自启 / macOS 权限只在独立设置窗口里出现,减轻第一眼压力
-      if (label === 'settings') {
-        renderConn(!!s.connected);
-        refreshPerms();
-        setInterval(pollConn, 3000);
-      } else {
-        $('basics').style.display = 'none';
-      }
+      // 已配置(设置窗口 / 再次打开)→ 直接落到第 2 步;全新未配置 → 从第 1 步开始
+      showStep(s.configured ? 2 : 1);
     }
 
     function renderConn(on) {
@@ -242,43 +282,61 @@
       try { await invoke('set_autostart', { enabled: e.target.checked }); } catch (err) {}
     };
 
-    $('btn').onclick = async () => {
+    $('back').onclick = () => showStep(1);
+
+    // 第 1 步:仅保存凭证(不跳转),执行臂随后自动连;界面滑到第 2 步
+    $('btn-next').onclick = async () => {
       const worker = $('worker').value.trim();
       const password = $('password').value;
       const name = $('name').value.trim();
       const msg = $('msg');
-      const btn = $('btn');
       msg.className = 'msg';
       if (!worker) { msg.textContent = '请填主域名'; return; }
       if (!name) { msg.textContent = '请给这台设备起个唯一的名字'; return; }
 
-      // 点击即反馈:按钮进入连接中状态,防止重复点击
+      const btn = $('btn-next');
       btn.disabled = true;
       const original = btn.textContent;
-      btn.textContent = '连接中…';
-      msg.className = 'msg';
-      msg.textContent = '正在连接 ' + worker + ' …';
-
+      btn.textContent = '保存中…';
       try {
-        // save_creds 持久化凭证;设置窗口靠 Rust 侧 navigate 去切主窗口
         await invoke('save_creds', { worker, password, name });
-        msg.className = 'msg ok';
-        if (label === 'settings') {
-          msg.textContent = '已保存,主窗口正在连接新地址';
-        } else {
-          // 首连:主窗口自己跳转到云端,不依赖 Rust self-navigate(WKWebView 上不稳,会卡在表单)
-          msg.textContent = '已保存,正在打开云端…';
-          go(worker, password);
-        }
+        showStep(2);
       } catch (err) {
-        // 失败必须让用户看到原因,不能悄无声息
         msg.className = 'msg err';
-        msg.textContent = '连接失败:' + (err?.message || err || '未知错误,请检查地址是否正确');
+        msg.textContent = '保存失败:' + (err?.message || err || '未知错误,请检查地址是否正确');
       } finally {
         btn.disabled = false;
         btn.textContent = original;
       }
     };
+
+    // 第 2 步:进入云端
+    $('btn-enter').onclick = async () => {
+      const btn = $('btn-enter');
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = '进入中…';
+      try {
+        if (label === 'settings') {
+          // 设置窗口:让 Rust 导航主窗口进云端,本窗口留提示
+          await invoke('enter');
+          $('msg2').className = 'msg ok';
+          $('msg2').textContent = '主窗口正在进入云端,可关闭此窗口';
+          btn.disabled = false;
+          btn.textContent = original;
+        } else {
+          // 主窗口:自己跳转(用已保存的凭证)
+          const s = await invoke('app_state');
+          go(s.worker, s.password);
+        }
+      } catch (err) {
+        $('msg2').className = 'msg err';
+        $('msg2').textContent = '进入失败:' + (err?.message || err || '未知错误');
+        btn.disabled = false;
+        btn.textContent = original;
+      }
+    };
+
     boot();
   </script>
 </body>

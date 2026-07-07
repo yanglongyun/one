@@ -67,13 +67,21 @@ fn urlencode(s: &str) -> String {
 
 // 设置页保存(主域名 + 密码 + 设备名)。执行臂每轮重读,几秒内自动连上。
 // 保存后让主窗口(重新)加载新的 worker 地址,设置窗口自身不跳转。
+// 第 1 步保存凭证(主域名 + 密码 + 设备名):只持久化,不跳转。
+// 执行臂每轮重读 config,几秒内自动连上;进入云端由第 2 步「进入 one」显式触发。
 #[tauri::command]
-fn save_creds(app: AppHandle, worker: String, password: String, name: String) {
+fn save_creds(worker: String, password: String, name: String) {
     system::config::save(&worker, &password, &name);
-    if worker.trim().is_empty() {
+}
+
+// 第 2 步:用已保存的凭证把主窗口导航进云端(设置窗口调用;主窗口自己在前端 go() 跳转)。
+#[tauri::command]
+fn enter(app: AppHandle) {
+    let c = system::config::load();
+    if c.worker_url.is_empty() {
         return;
     }
-    if let Ok(url) = tauri::Url::parse(&worker_login_url(&worker, &password)) {
+    if let Ok(url) = tauri::Url::parse(&worker_login_url(&c.worker_url, &c.password)) {
         // 优先主窗口;找不到就退到任意非设置窗口,避免 label 变动时静默失效
         let target = app.get_webview_window("main").or_else(|| {
             app.webview_windows()
@@ -170,7 +178,7 @@ fn main() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        .invoke_handler(tauri::generate_handler![app_state, save_creds, set_autostart, open_settings, mac_permissions, open_privacy_settings])
+        .invoke_handler(tauri::generate_handler![app_state, save_creds, enter, set_autostart, open_settings, mac_permissions, open_privacy_settings])
         .setup(|app| {
             let _ = APP.set(app.handle().clone());
 

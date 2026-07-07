@@ -33,11 +33,6 @@
             android:name=".SettingsActivity"
             android:exported="false" />
 
-        <!-- 保活设置:电池优化 / 自启动 / 后台锁定引导 -->
-        <activity
-            android:name=".KeepAliveActivity"
-            android:exported="false" />
-
         <!-- 开机拉起:失败不崩溃,交给 WorkManager 兜底 -->
         <receiver
             android:name=".BootReceiver"
