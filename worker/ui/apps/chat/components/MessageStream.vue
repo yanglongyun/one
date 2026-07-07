@@ -109,8 +109,8 @@ watch(() => chat.viewSeq, () => {
 
             <div v-else-if="!chat.messages.length" class="empty rise-enter">
                 <div class="empty-art"><Icon name="chat" /></div>
-                <div class="empty-title">和 one 开始对话</div>
-                <div class="empty-sub">直接说你想做什么。</div>
+                <div class="empty-title">今天想做点什么?</div>
+                <div class="empty-sub">在你的电脑、手机上跑命令、开网页,或者现做个小应用。</div>
             </div>
 
             <template v-for="block in blocks" :key="block.key">

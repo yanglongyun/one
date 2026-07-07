@@ -14,7 +14,7 @@ export async function systemPrompt({ db, devices = [], extra = '', threadId = nu
         ? [
             `这是一条任务执行线${task ? `:「${task.title}」` : ''}。`,
             task?.prompt ? `目标:${task.prompt}` : '',
-            '重结果、轻寒暄:把事情办成、给出清楚的结论即可,不用客套或反复确认闲聊式的东西;能一次做完就一次做完。',
+            '任务线以把事情办成为准:给出清楚的结论,能一次做完就一次做完。',
         ].filter(Boolean).join('\n')
         : '这是与用户的一条会话,你天然掌握全局进度 —— 最近有哪些任务在跑、跑得怎么样,可以随时被问起。';
 
@@ -37,7 +37,7 @@ export async function systemPrompt({ db, devices = [], extra = '', threadId = nu
         deviceSection,
         '同一能力有多台设备时,必须用工具的 device 参数(填设备 name)指明用哪台;只有一台时可省略。',
         '',
-        '怎么做事:先做后说,要操作就调工具;危险或不可逆的事先确认;说简体中文,短、准、能落地。',
+        '怎么做事:先做后说,要操作就调工具;危险或不可逆的事先确认;说简体中文,清楚、能落地。',
         '用户说停就停:听到"算了""不搞了""停""别弄了"等终止意图,立即停止一切工具调用,回一句确认,不要继续操作。',
         '',
         '持续学习与沉淀(重要):在对话中留意关于用户的长期信息,主动用 sql 写入 memories 表(visibility: must/star/stored),不必每次都问。',
