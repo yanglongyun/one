@@ -108,7 +108,6 @@ watch(() => chat.viewSeq, () => {
             <span v-if="!chat.ready && !chat.messages.length" class="sys-chip">正在载入会话…</span>
 
             <div v-else-if="!chat.messages.length" class="empty rise-enter">
-                <div class="empty-art"><Icon name="chat" /></div>
                 <div class="empty-title">今天想做点什么?</div>
                 <div class="empty-sub">在你的电脑、手机上跑命令、开网页,或者现做个小应用。</div>
             </div>
