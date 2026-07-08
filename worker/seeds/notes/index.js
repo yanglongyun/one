@@ -113,18 +113,22 @@ const DRAFT_KEY = 'one.notes.draft';
 function saveDraft() {
     if (editingId) return;
     try {
-        if (form.content.trim() || form.pinned || form.color !== 'yellow') localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+        if (form.content.trim() || form.pinned) localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
         else localStorage.removeItem(DRAFT_KEY);
     } catch {}
 }
 function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch {} }
+
+// 每次新建随机一个颜色(排除 plain,保证有色);有草稿则沿用草稿里的颜色
+const PICKABLE = COLORS.filter((c) => c !== 'plain');
+const randomColor = () => PICKABLE[Math.floor(Math.random() * PICKABLE.length)];
 
 function openCreate() {
     editingId = null;
     let d = null;
     try { d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch {}
     form = d ? { content: d.content || '', color: colorOf(d.color), pinned: Boolean(d.pinned) }
-             : { content: '', color: 'yellow', pinned: false };
+             : { content: '', color: randomColor(), pinned: false };
     openModal();
 }
 function openEdit(n) { editingId = n.id; form = { content: n.content || '', color: colorOf(n.color), pinned: Boolean(n.pinned) }; openModal(); }
