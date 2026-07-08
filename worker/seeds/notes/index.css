@@ -11,11 +11,7 @@
     --paper-pink: #fde9f0; --paper-pink-deep: #ec6a9c;
     --paper-plain: #ffffff; --paper-plain-deep: #8ba1bb;
     --paper-purple: #efe7fe; --paper-purple-deep: #8b5cf6;
-    --paper-orange: #ffe8d1; --paper-orange-deep: #f97316;
-    --paper-teal: #d4f5ef; --paper-teal-deep: #14b8a6;
-    --paper-red: #fee2e2; --paper-red-deep: #ef4444;
     --paper-slate: #3f4c63; --paper-slate-deep: #7c8aa3;
-    --paper-night: #2a3040; --paper-night-deep: #5a6782;
     --shadow-s: 0 1px 2px rgba(48,88,140,.06), 0 3px 10px -2px rgba(48,88,140,.08);
     --shadow-m: 0 2px 4px rgba(48,88,140,.05), 0 12px 28px -8px rgba(48,88,140,.14);
     --shadow-l: 0 4px 8px rgba(48,88,140,.06), 0 24px 56px -12px rgba(48,88,140,.22);
@@ -57,14 +53,10 @@ textarea { font: inherit; color: var(--ink); }
 .note-pink { background: var(--paper-pink); }
 .note-plain { background: var(--paper-plain); }
 .note-purple { background: var(--paper-purple); }
-.note-orange { background: var(--paper-orange); }
-.note-teal { background: var(--paper-teal); }
-.note-red { background: var(--paper-red); }
 .note-slate { background: var(--paper-slate); color: #eaf0fb; }
-.note-night { background: var(--paper-night); color: #eaf0fb; }
 /* 深色卡片:正文/时间改浅色保证对比 */
-.note-slate .note-body, .note-night .note-body { color: #c6d1e4; }
-.note-slate .note-foot .time, .note-night .note-foot .time { color: #97a6c1; }
+.note-slate .note-body { color: #c6d1e4; }
+.note-slate .note-foot .time { color: #97a6c1; }
 .note .pin { position: absolute; top: 10px; right: 12px; font-size: 14px; transform: rotate(20deg); }
 .note-title { font-size: 14px; font-weight: 700; padding-right: 22px; white-space: pre-wrap; word-break: break-word; }
 .note-body { margin-top: 8px; font-size: 12.5px; line-height: 1.75; color: var(--ink2); }
@@ -84,11 +76,7 @@ textarea { font: inherit; color: var(--ink); }
 .cdot-pink { background: var(--paper-pink); border-color: var(--paper-pink-deep); }
 .cdot-plain { background: var(--paper-plain); border-color: var(--paper-plain-deep); }
 .cdot-purple { background: var(--paper-purple); border-color: var(--paper-purple-deep); }
-.cdot-orange { background: var(--paper-orange); border-color: var(--paper-orange-deep); }
-.cdot-teal { background: var(--paper-teal); border-color: var(--paper-teal-deep); }
-.cdot-red { background: var(--paper-red); border-color: var(--paper-red-deep); }
 .cdot-slate { background: var(--paper-slate); border-color: var(--paper-slate-deep); }
-.cdot-night { background: var(--paper-night); border-color: var(--paper-night-deep); }
 .cdot.on { box-shadow: 0 0 0 2px rgba(255,255,255,.95), 0 0 0 3.5px var(--candy); }
 .cdot.lg { width: 24px; height: 24px; }
 .note-trash { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center;

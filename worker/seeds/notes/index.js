@@ -1,6 +1,6 @@
 // 笔记种子小应用 —— 用 window.one.sql 自建并读写 app_notes 表(小应用数据表统一 app_ 前缀)。
 const $ = (s) => document.querySelector(s);
-const COLORS = ['yellow', 'blue', 'green', 'pink', 'purple', 'orange', 'teal', 'red', 'slate', 'night', 'plain'];
+const COLORS = ['yellow', 'blue', 'green', 'pink', 'purple', 'slate', 'plain'];
 const colorOf = (c) => (COLORS.includes(c) ? c : 'plain');
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
 
