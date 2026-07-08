@@ -98,6 +98,7 @@ function paintColorPicker() {
     $('#f-colors').querySelectorAll('.cdot').forEach((d) => d.addEventListener('click', () => {
         form.color = d.dataset.color;
         paintColorPicker();
+        saveDraft();
     }));
 }
 function openModal() {
@@ -107,7 +108,25 @@ function openModal() {
     paintColorPicker();
     $('#modal').style.display = 'grid';
 }
-function openCreate() { editingId = null; form = { content: '', color: 'yellow', pinned: false }; openModal(); }
+// 新建草稿缓存:边输入边存 localStorage,意外关掉弹窗也不丢;保存成功才清。只缓存「新建」,编辑已有笔记不进草稿。
+const DRAFT_KEY = 'one.notes.draft';
+function saveDraft() {
+    if (editingId) return;
+    try {
+        if (form.content.trim() || form.pinned || form.color !== 'yellow') localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+        else localStorage.removeItem(DRAFT_KEY);
+    } catch {}
+}
+function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch {} }
+
+function openCreate() {
+    editingId = null;
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch {}
+    form = d ? { content: d.content || '', color: colorOf(d.color), pinned: Boolean(d.pinned) }
+             : { content: '', color: 'yellow', pinned: false };
+    openModal();
+}
 function openEdit(n) { editingId = n.id; form = { content: n.content || '', color: colorOf(n.color), pinned: Boolean(n.pinned) }; openModal(); }
 function closeModal() { $('#modal').style.display = 'none'; }
 
@@ -120,6 +139,7 @@ async function save() {
         await one.sql('UPDATE app_notes SET content = ?, color = ?, pinned = ?, updated_at = ? WHERE id = ?', [content, form.color, pinned, now, editingId]);
     } else {
         await one.sql('INSERT INTO app_notes (content, color, pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?)', [content, form.color, pinned, now, now]);
+        clearDraft();
     }
     closeModal();
     load(true);
@@ -128,8 +148,8 @@ async function save() {
 $('#btn-new').addEventListener('click', openCreate);
 $('#btn-cancel').addEventListener('click', closeModal);
 $('#btn-save').addEventListener('click', save);
-$('#f-content').addEventListener('input', (e) => { form.content = e.target.value; });
-$('#f-pin').addEventListener('click', () => { form.pinned = !form.pinned; $('#f-pin').classList.toggle('on', form.pinned); });
+$('#f-content').addEventListener('input', (e) => { form.content = e.target.value; saveDraft(); });
+$('#f-pin').addEventListener('click', () => { form.pinned = !form.pinned; $('#f-pin').classList.toggle('on', form.pinned); saveDraft(); });
 $('#modal').addEventListener('click', (e) => { if (e.target === $('#modal')) closeModal(); });
 
 // 触底哨兵:滚到接近底部就自动加载下一页
