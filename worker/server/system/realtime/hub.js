@@ -107,8 +107,11 @@ export class OneHub extends DurableObject {
         }
         // 工具结果:按 id 兑现 loop 的等待(loop 统一把结果发给 web 显示,这里不重复转发)
         if (msg.type === 'chat.tool.result') { this.pending.resolve(msg.id, msg.result); return; }
-        // 其余(files 结果 / status 等)→ 转发给网页端
-        this.dispatch.toWeb(msg);
+        // 其余(files/status/terminal 等)→ 标记来源设备后转发给网页端。
+        // 来源名让同时打开的多台设备能力页各自认领消息,避免终端输出串台。
+        let attachment = {};
+        try { attachment = ws.deserializeAttachment() || {}; } catch { /* ignore */ }
+        this.dispatch.toWeb({ ...msg, from: attachment.name || '设备' });
     }
 
     // 起一个聊天 turn,挂 abort 控制,收尾清自己。

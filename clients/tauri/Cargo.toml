@@ -19,6 +19,7 @@ futures-util = "0.3"
 base64 = "0.22"
 sysinfo = "0.30"
 if-addrs = "0.13"
+portable-pty = "0.9"
 
 [target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
 enigo = "0.2"           # 坐标点击/输入/按键(视觉定位后点 x,y);mac 按名点走 osascript、win 走 UIA/PowerShell

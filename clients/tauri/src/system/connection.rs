@@ -45,16 +45,21 @@ async fn serve(cfg: &Config) -> Result<(), String> {
         None => format!("wss://{}", cfg.worker_url),
     };
     // 桌面手:密码 + role=device(密码即凭证)
-    let url = format!("{ws_base}/api/realtime/ws?password={}&role=device", urlencode(&cfg.password));
+    let url = format!(
+        "{ws_base}/api/realtime/ws?password={}&role=device",
+        urlencode(&cfg.password)
+    );
     config::log(&format!("连接 {ws_base}/api/realtime/ws (role=device) …"));
 
-    let (ws, _) = tokio_tungstenite::connect_async(&url).await.map_err(|e| e.to_string())?;
+    let (ws, _) = tokio_tungstenite::connect_async(&url)
+        .await
+        .map_err(|e| e.to_string())?;
     config::log("✅ 已连上 worker,听命中");
     crate::set_conn_status(true);
     let (mut write, mut read) = ws.split();
     let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
 
-    // 自报身份:唯一设备名(寻址键,缺省回退主机名)+ 类型 + 能力(shell 工具 + 文件/状态视图)
+    // 自报身份:唯一设备名(寻址键,缺省回退主机名)+ 类型 + 能力(shell 工具 + 文件/状态/终端视图)
     let name = if cfg.name.is_empty() {
         sysinfo::System::host_name().unwrap_or_else(|| "desktop".to_string())
     } else {
@@ -62,13 +67,23 @@ async fn serve(cfg: &Config) -> Result<(), String> {
     };
     // 平台分能力宣告:macOS / Windows 全量;其它平台(Linux)只报 shell/files/status。
     #[cfg(any(target_os = "macos", target_os = "windows"))]
-    let caps: &[&str] = &["shell", "files", "status",
-                          "computer_screen", "computer_click", "computer_type", "computer_key", "computer_open_app",
-                          "screenshot"];
+    let caps: &[&str] = &[
+        "shell",
+        "files",
+        "status",
+        "terminal",
+        "computer_screen",
+        "computer_click",
+        "computer_type",
+        "computer_key",
+        "computer_open_app",
+        "screenshot",
+    ];
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    let caps: &[&str] = &["shell", "files", "status"];
+    let caps: &[&str] = &["shell", "files", "status", "terminal"];
     let _ = tx.send(Message::Text(
-        serde_json::json!({ "type": "hello", "kind": "desktop", "name": name, "caps": caps }).to_string(),
+        serde_json::json!({ "type": "hello", "kind": "desktop", "name": name, "caps": caps })
+            .to_string(),
     ));
 
     // 写出任务:统一出口,避免多任务争用 ws sink
@@ -125,7 +140,9 @@ fn urlencode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for b in s.bytes() {
         match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(b as char),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(b as char)
+            }
             _ => out.push_str(&format!("%{b:02X}")),
         }
     }

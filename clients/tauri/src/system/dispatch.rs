@@ -2,7 +2,7 @@
 use serde_json::{json, Value};
 
 use super::Tx;
-use crate::apps::{chat, files, status};
+use crate::apps::{chat, files, status, terminal};
 
 pub async fn dispatch(v: Value, tx: Tx) {
     let t = v.get("type").and_then(|x| x.as_str()).unwrap_or("");
@@ -24,5 +24,11 @@ pub async fn dispatch(v: Value, tx: Tx) {
         status::handle(data, &tx).await;
         return;
     }
-    // 其余(terminal./screen./chat. 附件 等)未在此设备实现,忽略。
+    // terminal.*:用户直接操作的长驻 PTY 会话。
+    if t.starts_with("terminal.") {
+        let data = v.get("data").cloned().unwrap_or_else(|| json!({}));
+        terminal::handle(t, data, &tx).await;
+        return;
+    }
+    // 其余(screen./chat. 附件 等)未在此设备实现,忽略。
 }

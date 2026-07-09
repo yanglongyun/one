@@ -21,6 +21,7 @@ function apply(theme) {
     if (theme === 'night') root.dataset.theme = 'night';
     else delete root.dataset.theme;
     root.style.colorScheme = theme === 'night' ? 'dark' : 'light';
+    try { window.dispatchEvent(new CustomEvent('one-theme', { detail: { theme } })); } catch {}
 }
 
 export const useThemeStore = defineStore('theme', () => {

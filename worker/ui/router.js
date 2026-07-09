@@ -29,6 +29,7 @@ const routes = [
     // 电脑能力页(从设备详情进入,按设备 id 划分:/devices/<设备id>/<功能>)
     { path: '/devices/:dev/files', name: 'files', component: () => import('./system/views/device/files/index.vue') },
     { path: '/devices/:dev/status', name: 'status', component: () => import('./system/views/device/status/index.vue') },
+    { path: '/devices/:dev/terminal', name: 'terminal', component: () => import('./system/views/device/terminal/index.vue') },
 
     { path: '/:pathMatch(.*)*', redirect: '/chat' },
 ];

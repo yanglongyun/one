@@ -29,6 +29,7 @@ const caps = computed(() => (hand.value?.caps || []).map((c) => CAP_META[c] || {
 // 功能入口按设备实际能力显示(桌面才有 files/status,安卓/插件没有)
 const hasFiles = computed(() => (hand.value?.caps || []).includes('files'));
 const hasStatus = computed(() => (hand.value?.caps || []).includes('status'));
+const hasTerminal = computed(() => (hand.value?.caps || []).includes('terminal'));
 
 // 本机识别:页面跑在客户端壳里(Tauri/OneNative 桥存在)且查看的正是这台设备 → 显示本机设置入口
 import { ref, onMounted } from 'vue';
@@ -98,7 +99,17 @@ function openNative() {
                 </div>
 
                 <!-- 电脑能力入口(按能力显示) -->
-                <div v-if="hasFiles || hasStatus" class="entry-grid">
+                <div v-if="hasFiles || hasStatus || hasTerminal" class="entry-grid">
+                    <router-link v-if="hasTerminal" class="card hoverable entry" :to="`/devices/${encodeURIComponent(name)}/terminal`">
+                        <span class="e-ico" style="--tile-glow:rgba(119,97,239,.45);background:linear-gradient(150deg,#9d8bfa,#7761ef)">
+                            <Icon name="terminal" style="width:18px;height:18px;color:var(--on-accent)" />
+                        </span>
+                        <span>
+                            <div class="e-title">终端</div>
+                            <div class="e-sub">交互式命令行与长驻会话</div>
+                        </span>
+                        <span class="go"><Icon name="back" style="width:15px;height:15px" /></span>
+                    </router-link>
                     <router-link v-if="hasFiles" class="card hoverable entry" :to="`/devices/${encodeURIComponent(name)}/files`">
                         <span class="e-ico" style="--tile-glow:rgba(243,138,29,.45);background:linear-gradient(150deg,#ffb648,#f38a1d)">
                             <Icon name="folder" style="width:18px;height:18px;color:var(--on-accent)" />
