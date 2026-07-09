@@ -170,7 +170,7 @@ onMounted(() => memories.load());
 .search-box {
     flex: 1; display: flex; align-items: center; gap: 8px;
     height: 36px; padding: 0 13px;
-    background: #fff; border-radius: 12px; box-shadow: var(--shadow-s);
+    background: var(--panel); border-radius: 12px; box-shadow: var(--shadow-s);
     transition: box-shadow .15s;
 }
 .search-box:focus-within { box-shadow: var(--shadow-s), 0 0 0 3px var(--candy-ring); }
@@ -194,7 +194,7 @@ onMounted(() => memories.load());
 
 /* 可见性糖 */
 .pill-must  { background: var(--bad-soft);  color: var(--bad); }
-.pill-star  { background: var(--run-soft);  color: #cf7d0a; }
+.pill-star  { background: var(--run-soft);  color: var(--run-ink); }
 .pill-plain { background: var(--wait-soft); color: var(--wait); }
 
 .mem-empty { padding: 56px 20px; text-align: center; }

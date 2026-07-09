@@ -66,7 +66,7 @@ function isFailed(item) {
     margin-top: 2px;
     display: grid;
     place-items: center;
-    background: #fff;
+    background: var(--panel);
     color: var(--candy-deep);
     font-size: 12px;
     font-weight: 800;

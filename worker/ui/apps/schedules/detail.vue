@@ -145,7 +145,7 @@ onMounted(async () => {
                     <div class="card sched-overview">
                         <div class="row gap-3">
                             <span class="tile" :class="TILES[idx % TILES.length]" style="width:40px;height:40px;border-radius:13px;display:grid;place-items:center;flex-shrink:0">
-                                <Icon :name="ICONS[idx % ICONS.length]" style="width:18px;height:18px;color:#fff" />
+                                <Icon :name="ICONS[idx % ICONS.length]" style="width:18px;height:18px;color:var(--on-accent)" />
                             </span>
                             <span class="grow row gap-2">
                                 <span style="font-size:15px;font-weight:700">{{ sched.name || '未命名日程' }}</span>

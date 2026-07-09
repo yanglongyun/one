@@ -133,9 +133,9 @@ function readDataUrl(file) {
     height: 34px;
     padding: 0 15px;
     border-radius: 99px;
-    background: rgba(255,255,255,.94);
+    background: var(--glass-strong);
     box-shadow: var(--shadow-m);
-    border: 1px solid rgba(255,255,255,.9);
+    border: 1px solid var(--surface-border-strong);
     font-size: 12.5px;
     font-weight: 700;
     color: var(--bad);
@@ -168,8 +168,8 @@ function readDataUrl(file) {
     height: 40px;
     padding: 4px 8px 4px 4px;
     border-radius: 12px;
-    background: rgba(255,255,255,.92);
-    border: 1px solid rgba(255,255,255,.95);
+    background: var(--glass-strong);
+    border: 1px solid var(--surface-border-strong);
     box-shadow: var(--shadow-s);
     color: var(--ink2);
     font-size: 11px;

@@ -122,7 +122,7 @@ onMounted(schedules.load);
                     >
                         <div class="row gap-3">
                             <span class="tile sched-ico" :class="tileOf(i)" style="display:grid;place-items:center">
-                                <Icon :name="iconOf(i)" style="width:18px;height:18px;color:#fff" />
+                                <Icon :name="iconOf(i)" style="width:18px;height:18px;color:var(--on-accent)" />
                             </span>
                             <span class="grow">
                                 <span class="row gap-2">

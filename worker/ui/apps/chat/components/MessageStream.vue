@@ -181,7 +181,7 @@ watch(() => chat.viewSeq, () => {
     font-size: 11px;
     font-weight: 700;
     color: var(--ink-3);
-    background: rgba(255,255,255,.7);
+    background: var(--glass);
     padding: 4px 12px;
     border-radius: 99px;
     box-shadow: var(--shadow-s);
@@ -192,7 +192,7 @@ watch(() => chat.viewSeq, () => {
     font-size: 11.5px;
     font-weight: 500;
     color: var(--ink-3);
-    background: rgba(255,255,255,.55);
+    background: var(--glass-soft);
     padding: 5px 13px;
     border-radius: 99px;
 }
@@ -211,8 +211,8 @@ watch(() => chat.viewSeq, () => {
     margin: 5px 0;
 }
 .msg-user .bubble {
-    background: linear-gradient(160deg, #55acf8, var(--candy-deep));
-    color: #fff;
+    background: linear-gradient(160deg, var(--accent-start), var(--candy-deep));
+    color: var(--on-accent);
     border-radius: 20px 20px 6px 20px;
     padding: 11px 15px;
     font-size: 13.5px;
@@ -245,7 +245,7 @@ watch(() => chat.viewSeq, () => {
     margin-top: 2px;
     display: grid;
     place-items: center;
-    background: #fff;
+    background: var(--panel);
     color: var(--candy-deep);
     font-size: 12px;
     font-weight: 800;
@@ -253,7 +253,7 @@ watch(() => chat.viewSeq, () => {
 }
 .msg-ai .bubble {
     background: var(--panel);
-    border: 1px solid rgba(255,255,255,.8);
+    border: 1px solid var(--surface-border);
     border-radius: 6px 20px 20px 20px;
     padding: 11px 16px;
     font-size: 13.5px;

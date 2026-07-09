@@ -110,13 +110,13 @@ function fmtTime(ts) {
     flex-shrink: 0;
     width: 0;
     overflow: hidden;
-    background: rgba(255, 255, 255, .62);
+    background: var(--glass-soft);
     border-right: 1px solid transparent;
     transition: width .24s var(--ease), border-color .24s;
 }
 .chats-side.open {
     width: 264px;
-    border-right-color: rgba(150, 180, 215, .18);
+    border-right-color: var(--line-soft);
 }
 .side-inner {
     width: 264px; height: 100%;
@@ -148,7 +148,7 @@ function fmtTime(ts) {
     cursor: pointer;
     transition: background .15s;
 }
-.chat-row:hover { background: rgba(120, 160, 210, .1); }
+.chat-row:hover { background: var(--surface-hover); }
 .chat-row.on { background: var(--candy-soft); }
 .chat-row.on .row-title { color: var(--candy-deep); }
 .row-pin { width: 12px; height: 12px; flex-shrink: 0; color: var(--candy); }
@@ -158,7 +158,7 @@ function fmtTime(ts) {
     display: none; align-items: center; gap: 2px;
     position: absolute; right: 6px; top: 0; bottom: 0;
     padding-left: 18px;
-    background: linear-gradient(90deg, transparent, #fff 30%);
+    background: linear-gradient(90deg, transparent, var(--panel) 30%);
 }
 .chat-row.on .row-ops { background: linear-gradient(90deg, transparent, var(--candy-soft) 30%); }
 .chat-row:hover .row-ops { display: inline-flex; }
@@ -173,7 +173,7 @@ function fmtTime(ts) {
     transition: background .15s, color .15s;
 }
 .row-ops .op :deep(.o-icon) { width: 15px; height: 15px; }
-.row-ops .op:hover { background: rgba(255,255,255,.9); color: var(--candy-deep); }
+.row-ops .op:hover { background: var(--glass-strong); color: var(--candy-deep); }
 .row-ops .op.pinned { color: var(--candy-deep); }
 .row-ops .op.pinned :deep(svg) { fill: currentColor; }
 .row-ops .op.danger:hover { color: var(--bad); }
@@ -186,12 +186,12 @@ function fmtTime(ts) {
     .side-mask {
         display: block;
         position: absolute; inset: 0; z-index: 39;
-        background: rgba(50, 85, 130, .18);
+        background: var(--overlay);
         animation: fade .18s ease-out;
     }
     .chats-side {
         position: absolute; left: 0; top: 0; bottom: 0; z-index: 40;
-        background: #fff;
+        background: var(--panel);
     }
     .chats-side.open {
         width: min(300px, 82vw);

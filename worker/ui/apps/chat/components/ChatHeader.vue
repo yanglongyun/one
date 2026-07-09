@@ -29,5 +29,5 @@ function toggle() {
 
 <style scoped>
 .chat-title { font-size: 16px; font-weight: 700; letter-spacing: .01em; max-width: 52vw; }
-.menu-on { color: var(--candy-deep); background: rgba(255, 255, 255, .8); }
+.menu-on { color: var(--candy-deep); background: var(--glass-strong); }
 </style>

@@ -41,6 +41,8 @@ const ICONS = {
     robot: S('<rect x="5" y="8" width="14" height="10.5" rx="3"/><path d="M12 8V4.5M9 13h.01M15 13h.01"/><circle cx="12" cy="3.8" r="1"/>'),
     link: S('<path d="M9.5 14.5 14.5 9.5M8 11l-2.4 2.4a3.6 3.6 0 0 0 5 5.1L13 16M11 8l2.4-2.4a3.6 3.6 0 0 1 5.1 5L16 13"/>'),
     eye: S('<path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>'),
+    sun: S('<circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/>'),
+    moon: S('<path d="M20 15.2A8.4 8.4 0 0 1 8.8 4a8.5 8.5 0 1 0 11.2 11.2z"/>'),
     star: S('<path d="m12 4 2.4 5 5.6.7-4.1 3.8 1 5.5-4.9-2.7L7.1 19l1-5.5L4 9.7 9.6 9z"/>'),
     doc: S('<path d="M6 3.5h9.5L20 8v12.5H6z"/><path d="M15 3.5V8.5H20"/>'),
     battery: S('<rect x="3" y="8" width="15" height="8.5" rx="2"/><path d="M21 11v2.5"/><rect x="5" y="10" width="7" height="4.5" rx="1" fill="currentColor" stroke="none"/>'),

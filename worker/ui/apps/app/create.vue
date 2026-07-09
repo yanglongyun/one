@@ -32,7 +32,7 @@ const HOW = [
                 <div class="demo-grid">
                     <div v-for="d in DEMOS" :key="d.name" class="card demo">
                         <span class="d-tile" :style="{ '--tile-glow': d.glow, background: d.bg }">
-                            <Icon :name="d.icon" style="width:18px;height:18px;color:#fff" />
+                            <Icon :name="d.icon" style="width:18px;height:18px;color:var(--on-accent)" />
                         </span>
                         <div class="d-name">{{ d.name }}</div>
                         <div class="d-sub">{{ d.sub }}</div>
@@ -60,7 +60,7 @@ const HOW = [
 .hero-tile { width: 72px; height: 72px; border-radius: 24px; margin: 0 auto 16px;
     display: grid; place-items: center;
     border: 2px dashed var(--line); color: var(--ink-4);
-    background: rgba(255,255,255,.7); }
+    background: var(--glass); }
 .hero-tile :deep(svg) { width: 30px; height: 30px; }
 .hero-title { font-size: 18px; font-weight: 800; }
 .hero-sub { margin: 8px auto 0; max-width: 400px; font-size: 13px; line-height: 1.8; color: var(--ink2); }
@@ -70,7 +70,7 @@ const HOW = [
 .demo-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .demo-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 .demo { padding: 15px 16px; }
-.demo .d-tile { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: #fff;
+.demo .d-tile { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: var(--on-accent);
     box-shadow: var(--gloss), 0 4px 10px -3px var(--tile-glow, rgba(48,88,140,.35)); }
 .demo .d-tile :deep(svg) { width: 18px; height: 18px; }
 .demo .d-name { margin-top: 10px; font-size: 13.5px; font-weight: 700; }

@@ -79,8 +79,8 @@ async function copyOrigin() {
     flex-shrink: 0;
     width: 30px; height: 30px; border-radius: 99px;
     display: grid; place-items: center;
-    background: linear-gradient(160deg, #58aef8, var(--candy-deep));
-    color: #fff; font-size: 13px; font-weight: 800;
+    background: linear-gradient(160deg, var(--accent-start), var(--candy-deep));
+    color: var(--on-accent); font-size: 13px; font-weight: 800;
     box-shadow: var(--gloss), 0 4px 10px -3px rgba(43,134,228,.5);
     margin-top: 16px;
 }

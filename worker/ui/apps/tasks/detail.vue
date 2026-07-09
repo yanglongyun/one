@@ -145,7 +145,7 @@ watch(() => route.params.id, (id) => { if (id) load(id); });
 .overview .origin-badge a { color: var(--candy-deep); text-decoration: none; font-weight: 600; }
 .overview .origin-badge a:hover { text-decoration: underline; }
 .result-block { margin-top: 14px; border-radius: 15px; background: var(--ok-soft); padding: 14px 16px; }
-.result-block .r-label { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; color: #169060; letter-spacing: .04em; margin-bottom: 7px; }
+.result-block .r-label { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; color: var(--ok-ink); letter-spacing: .04em; margin-bottom: 7px; }
 .result-block .r-label svg { width: 14px; height: 14px; }
 .result-block .r-text { font-size: 13.5px; line-height: 1.85; white-space: pre-wrap; word-break: break-word; }
 .result-block.bad { background: var(--bad-soft); }
@@ -162,7 +162,7 @@ watch(() => route.params.id, (id) => { if (id) load(id); });
 .step:last-child::before { bottom: calc(100% - 18px); }
 .step:only-child::before { display: none; }
 .step .node { position: absolute; left: 0; top: 14px; width: 12px; height: 12px; border-radius: 99px;
-    background: var(--candy); box-shadow: 0 0 0 3px #fff; }
+    background: var(--candy); box-shadow: 0 0 0 3px var(--panel); }
 .step.user .node { background: var(--ink-4); }
 .step.sys .node { background: var(--ink-4); opacity: .5; }
 .step.tool .node { background: var(--ok); }

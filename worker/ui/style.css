@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════
-   one · 晴空软糖 Sky Candy(唯一主题,只有亮色)
-   天空做画布,糖果做质感:白色饱满的卡片、果冻按钮、糖果状态色。
+   one · 晴空 / 谧夜
+   天空或夜幕做画布,软糖质感的面板、按钮与状态色。
    系统字体栈,零外部依赖;图标全部内联 SVG(圆头线条,见 Icon.vue)。
    ═══════════════════════════════════════════════════════════════ */
 
@@ -11,6 +11,8 @@
     --sky-top: #d5eafd;
     --sky-mid: #e9f4fe;
     --sky-low: #f7fbff;
+    --canvas-glow-a: rgba(255, 255, 255, .65);
+    --canvas-glow-b: rgba(190, 225, 255, .55);
 
     /* 墨色:全部带蓝倾向,不用纯灰 */
     --ink:    #22354e;
@@ -30,6 +32,8 @@
     --ok:        #26b573;  --ok-soft:    #dff5e9;   /* 完成 · 薄荷 */
     --bad:       #ee5d68;  --bad-soft:   #fde9eb;   /* 失败 · 草莓 */
     --halt:      #9aa8ba;  --halt-soft:  #eff2f6;   /* 已中止 · 石灰 */
+    --run-ink: #cf7d0a;
+    --ok-ink: #169060;
 
     /* 便签糖果纸 */
     --paper-yellow: #fff6d9; --paper-yellow-deep: #eab308;
@@ -45,6 +49,17 @@
     --line:  rgba(140, 170, 205, .22);
     --line-soft: rgba(140, 170, 205, .14);
     --line-hi:   rgba(140, 170, 205, .32);
+    --glass: rgba(255, 255, 255, .66);
+    --glass-strong: rgba(255, 255, 255, .9);
+    --glass-soft: rgba(255, 255, 255, .62);
+    --surface-border: rgba(255, 255, 255, .8);
+    --surface-border-strong: rgba(255, 255, 255, .9);
+    --surface-hover: rgba(120, 165, 215, .1);
+    --overlay: rgba(50, 85, 130, .28);
+    --toggle-track: #dbe5f0;
+    --on-accent: #ffffff;
+    --accent-start: #58aef8;
+    --brand-start: #62b4fa;
 
     /* 糖果阴影:蓝调、双层、软 */
     --shadow-s: 0 1px 2px rgba(48, 88, 140, .06), 0 3px 10px -2px rgba(48, 88, 140, .08);
@@ -61,6 +76,59 @@
 
     --spring: cubic-bezier(.34, 1.3, .5, 1);
     --ease: cubic-bezier(.25, .6, .3, 1);
+}
+
+/* 谧夜:沿用原版深紫蓝色板,补齐重构后的语义 token。 */
+:root[data-theme="night"] {
+    --sky-top: #373d6e;
+    --sky-mid: #272c52;
+    --sky-low: #1f2342;
+    --canvas-glow-a: rgba(142, 155, 255, .14);
+    --canvas-glow-b: rgba(83, 207, 213, .08);
+
+    --ink: #edefff;
+    --ink2: #c3c9ec;
+    --ink-3: #9aa3d4;
+    --ink-4: #737da9;
+
+    --candy: #8e9bff;
+    --candy-deep: #aab4ff;
+    --candy-soft: #3a4078;
+    --candy-ring: rgba(142, 155, 255, .28);
+
+    --run: #e8c268;  --run-soft: #4a4030;  --run-ink: #f0cc78;
+    --wait: #9aa3d4; --wait-soft: #34395f;
+    --ok: #4ce0a3;   --ok-soft: #1f4a3d;   --ok-ink: #63e7ae;
+    --bad: #ff8c84;  --bad-soft: #4a2c30;
+    --halt: #8f98c1; --halt-soft: #303554;
+
+    --paper-yellow: #3e3a22; --paper-yellow-deep: #e8c268;
+    --paper-blue: #26315e;   --paper-blue-deep: #8e9bff;
+    --paper-green: #1f4036;  --paper-green-deep: #4ce0a3;
+    --paper-pink: #43293a;   --paper-pink-deep: #f08ab5;
+    --paper-plain: #2f3566;  --paper-plain-deep: #9aa3d4;
+
+    --panel: #2b305c;
+    --well: #24294c;
+    --code: #15193a;
+    --line: rgba(255, 255, 255, .12);
+    --line-soft: rgba(255, 255, 255, .08);
+    --line-hi: rgba(255, 255, 255, .2);
+    --glass: rgba(43, 48, 92, .72);
+    --glass-strong: rgba(43, 48, 92, .94);
+    --glass-soft: rgba(37, 42, 79, .78);
+    --surface-border: rgba(255, 255, 255, .1);
+    --surface-border-strong: rgba(255, 255, 255, .14);
+    --surface-hover: rgba(142, 155, 255, .1);
+    --overlay: rgba(8, 10, 28, .46);
+    --toggle-track: #444a70;
+    --accent-start: #98a5ff;
+    --brand-start: #98a5ff;
+
+    --shadow-s: 0 1px 2px rgba(7, 9, 25, .2), 0 4px 12px -3px rgba(7, 9, 25, .32);
+    --shadow-m: 0 2px 5px rgba(7, 9, 25, .2), 0 14px 32px -10px rgba(7, 9, 25, .48);
+    --shadow-l: 0 5px 12px rgba(7, 9, 25, .24), 0 26px 60px -14px rgba(7, 9, 25, .62);
+    --gloss: inset 0 1px 0 rgba(255, 255, 255, .12);
 }
 
 /* Tailwind token:inline 映射到晴空软糖色板,旧页面的 bg-bg / text-ink 等 utility 继续可用 */
@@ -85,6 +153,7 @@
 
 /* ── 基底 ─────────────────────────────────────────── */
 * { box-sizing: border-box; }
+html { background: var(--sky-low); }
 html, body { height: 100%; overscroll-behavior: none; }
 body {
     margin: 0;
@@ -97,8 +166,8 @@ body {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     background:
-        radial-gradient(1100px 480px at 18% -8%, rgba(255,255,255,.65), transparent 60%),
-        radial-gradient(900px 420px at 88% -6%, rgba(190,225,255,.55), transparent 55%),
+        radial-gradient(1100px 480px at 18% -8%, var(--canvas-glow-a), transparent 60%),
+        radial-gradient(900px 420px at 88% -6%, var(--canvas-glow-b), transparent 55%),
         linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 34%, var(--sky-low) 78%);
     background-attachment: fixed;
     overflow: hidden;
@@ -130,21 +199,21 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
     display: flex; align-items: center; gap: 10px;
     padding: 0 18px;
     height: 58px;
-    background: rgba(255, 255, 255, .66);
+    background: var(--glass);
     backdrop-filter: blur(20px) saturate(1.4);
     -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    border-bottom: 1px solid rgba(150, 180, 215, .18);
+    border-bottom: 1px solid var(--line-soft);
     position: relative; z-index: 50;
 }
 .topbar .brand {
     width: 30px; height: 30px; border-radius: 10px;
     display: grid; place-items: center;
-    background: linear-gradient(150deg, #62b4fa, var(--candy-deep));
-    color: #fff; font-weight: 800; font-size: 14px;
+    background: linear-gradient(150deg, var(--brand-start), var(--candy-deep));
+    color: var(--on-accent); font-weight: 800; font-size: 14px;
     box-shadow: var(--gloss), 0 4px 10px -2px rgba(43, 134, 228, .5);
 }
 .topbar .brand-emoji {
-    background: #fff;
+    background: var(--panel);
     font-size: 18px; line-height: 1;
     box-shadow: var(--shadow-s), var(--gloss);
 }
@@ -158,7 +227,7 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
     width: 36px; height: 36px; border-radius: 12px;
     display: grid; place-items: center;
     color: var(--ink2);
-    background: #fff;
+    background: var(--panel);
     box-shadow: var(--shadow-s);
     transition: transform .18s var(--spring), box-shadow .18s var(--ease), color .15s;
 }
@@ -170,13 +239,13 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
     border-radius: 99px;
     background: var(--wait-soft); color: var(--ink-3);
     font-size: 9px; font-weight: 700; line-height: 14px; text-align: center;
-    box-shadow: 0 0 0 1.5px #fff;
+    box-shadow: 0 0 0 1.5px var(--panel);
 }
 .icon-btn.ghost { background: transparent; box-shadow: none; }
-.icon-btn.ghost:hover { background: rgba(255,255,255,.8); box-shadow: var(--shadow-s); }
+.icon-btn.ghost:hover { background: var(--glass-strong); box-shadow: var(--shadow-s); }
 .icon-btn.candy {
     color: var(--candy-deep);
-    background: linear-gradient(180deg, #ffffff, #f2f8ff);
+    background: linear-gradient(180deg, var(--panel), var(--well));
 }
 .icon-btn.candy svg { width: 17px; height: 17px; }
 .icon-btn.candy:hover { color: var(--candy-deep); filter: brightness(1.03); }
@@ -199,12 +268,12 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
 }
 .btn:active { transform: scale(.96); }
 .btn-primary {
-    color: #fff;
-    background: linear-gradient(160deg, #58aef8, var(--candy-deep));
+    color: var(--on-accent);
+    background: linear-gradient(160deg, var(--accent-start), var(--candy-deep));
     box-shadow: var(--gloss), 0 5px 14px -3px rgba(43, 134, 228, .55);
 }
 .btn-primary:hover { filter: brightness(1.05); transform: translateY(-1px); box-shadow: var(--gloss), 0 8px 20px -4px rgba(43, 134, 228, .6); }
-.btn-plain { background: #fff; color: var(--ink2); box-shadow: var(--shadow-s); }
+.btn-plain { background: var(--panel); color: var(--ink2); box-shadow: var(--shadow-s); }
 .btn-plain:hover { color: var(--ink); transform: translateY(-1px); box-shadow: var(--shadow-m); }
 .btn-danger-soft { background: var(--bad-soft); color: var(--bad); }
 .btn:disabled { opacity: .45; cursor: default; pointer-events: none; }
@@ -219,7 +288,7 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
     background: var(--panel);
     border-radius: var(--r-l);
     box-shadow: var(--shadow-m);
-    border: 1px solid rgba(255, 255, 255, .8);
+    border: 1px solid var(--surface-border);
 }
 .card.hoverable { transition: transform .2s var(--spring), box-shadow .2s var(--ease); cursor: pointer; }
 .card.hoverable:hover { transform: translateY(-2px); box-shadow: var(--shadow-l); }
@@ -234,10 +303,10 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
     flex-shrink: 0;
 }
 .pill i { width: 5px; height: 5px; border-radius: 99px; background: currentColor; }
-.pill-run  { background: var(--run-soft);  color: #cf7d0a; }
+.pill-run  { background: var(--run-soft);  color: var(--run-ink); }
 .pill-run i { animation: pulse 1.3s ease-in-out infinite; }
 .pill-wait { background: var(--wait-soft); color: var(--wait); }
-.pill-ok   { background: var(--ok-soft);   color: #169060; }
+.pill-ok   { background: var(--ok-soft);   color: var(--ok-ink); }
 .pill-bad  { background: var(--bad-soft);  color: var(--bad); }
 .pill-halt { background: var(--halt-soft); color: var(--halt); }
 @keyframes pulse { 50% { opacity: .3; transform: scale(.7); } }
@@ -255,7 +324,7 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
 .filter {
     height: 32px; padding: 0 15px;
     border-radius: 99px;
-    background: rgba(255,255,255,.75);
+    background: var(--glass);
     box-shadow: var(--shadow-s);
     font-size: 12.5px; font-weight: 600; color: var(--ink2);
     transition: all .18s var(--ease);
@@ -263,8 +332,8 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
 }
 .filter:hover { color: var(--ink); transform: translateY(-1px); box-shadow: var(--shadow-m); }
 .filter.on {
-    color: #fff;
-    background: linear-gradient(160deg, #58aef8, var(--candy-deep));
+    color: var(--on-accent);
+    background: linear-gradient(160deg, var(--accent-start), var(--candy-deep));
     box-shadow: var(--gloss), 0 4px 12px -3px rgba(43, 134, 228, .55);
 }
 .filter .count { font-size: 11px; font-weight: 800; opacity: .75; }
@@ -291,9 +360,9 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
 .pop {
     position: fixed; z-index: 91;
     width: 300px;
-    background: #fff;
+    background: var(--panel);
     border-radius: 20px;
-    border: 1px solid rgba(255,255,255,.9);
+    border: 1px solid var(--surface-border-strong);
     box-shadow: var(--shadow-l);
     padding: 10px;
     transform-origin: top right;
@@ -311,14 +380,14 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
     border-radius: 14px;
     transition: background .15s;
 }
-.app-cell:hover { background: rgba(120, 165, 215, .1); }
+.app-cell:hover { background: var(--surface-hover); }
 .app-cell:active .tile { transform: scale(.92); }
 .app-cell .label { font-size: 11.5px; font-weight: 600; color: var(--ink2); }
 .app-cell.on .label { color: var(--candy-deep); font-weight: 700; }
 .tile {
     width: 46px; height: 46px; border-radius: 15px;
     display: grid; place-items: center;
-    color: #fff;
+    color: var(--on-accent);
     box-shadow: var(--gloss), 0 5px 12px -3px var(--tile-glow, rgba(48,88,140,.35));
     transition: transform .18s var(--spring);
     background: var(--tile-bg, linear-gradient(150deg, #62b4fa, #2b86e4));
@@ -334,17 +403,17 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
 .tile-settings { --tile-bg: linear-gradient(150deg, #94a9c4, #6d84a3); --tile-glow: rgba(109,132,163,.4); }
 .tile-timeline { --tile-bg: linear-gradient(150deg, #3fc8c0, #17a89f); --tile-glow: rgba(23,168,159,.45); }
 .tile-emoji {
-    background: #fff;
+    background: var(--panel);
     font-size: 23px; line-height: 1;
     box-shadow: var(--shadow-s), var(--gloss);
 }
 .tile-ghost { background: transparent; border: 1.8px dashed var(--line); color: var(--ink-4); box-shadow: none; }
 .app-cell:hover .tile-emoji {
-    background: #fff;
+    background: var(--panel);
     font-size: 23px; line-height: 1;
     box-shadow: var(--shadow-s), var(--gloss);
 }
-.tile-ghost { border-color: var(--line); color: var(--ink-3); background: #fff; }
+.tile-ghost { border-color: var(--line); color: var(--ink-3); background: var(--panel); }
 
 /* ── 表单糖 ────────────────────────────────────────── */
 .field { display: flex; flex-direction: column; gap: 6px; }
@@ -353,7 +422,7 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
     width: 100%;
     border: 1.5px solid var(--line);
     border-radius: 13px;
-    background: #fff;
+    background: var(--panel);
     padding: 10px 13px;
     font-size: 13.5px;
     outline: 0;
@@ -364,27 +433,27 @@ textarea.input { resize: vertical; line-height: 1.6; }
 .input::placeholder { color: var(--ink-4); }
 
 /* 软糖开关 */
-.toggle { position: relative; width: 44px; height: 26px; border-radius: 99px; background: #dbe5f0; transition: background .2s; flex-shrink: 0; box-shadow: inset 0 1px 3px rgba(48,88,140,.15); }
+.toggle { position: relative; width: 44px; height: 26px; border-radius: 99px; background: var(--toggle-track); transition: background .2s; flex-shrink: 0; box-shadow: inset 0 1px 3px rgba(48,88,140,.15); }
 .toggle::after {
     content: ""; position: absolute; top: 3px; left: 3px;
-    width: 20px; height: 20px; border-radius: 99px; background: #fff;
+    width: 20px; height: 20px; border-radius: 99px; background: var(--on-accent);
     box-shadow: 0 2px 5px rgba(48,88,140,.3);
     transition: left .2s var(--spring);
 }
 .toggle.on { background: linear-gradient(160deg, #4fca8f, #26b573); }
 .toggle.on::after { left: 21px; }
-.toggle.blue.on { background: linear-gradient(160deg, #58aef8, var(--candy-deep)); }
+.toggle.blue.on { background: linear-gradient(160deg, var(--accent-start), var(--candy-deep)); }
 
 /* 单选糖(分段) */
 .seg { display: inline-flex; gap: 4px; background: var(--well); border-radius: 12px; padding: 4px; }
 .seg .seg-item { height: 28px; padding: 0 13px; border-radius: 9px; font-size: 12.5px; font-weight: 600; color: var(--ink-3); transition: all .15s; display: inline-flex; align-items: center; }
 .seg .seg-item:hover { color: var(--ink); }
-.seg .seg-item.on { background: #fff; color: var(--candy-deep); font-weight: 700; box-shadow: var(--shadow-s); }
+.seg .seg-item.on { background: var(--panel); color: var(--candy-deep); font-weight: 700; box-shadow: var(--shadow-s); }
 
 /* ── 弹窗 / 底部单 ────────────────────────────────── */
 .modal-mask {
     position: fixed; inset: 0; z-index: 95;
-    background: rgba(50, 85, 130, .28);
+    background: var(--overlay);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     display: grid; place-items: center;
@@ -394,7 +463,7 @@ textarea.input { resize: vertical; line-height: 1.6; }
 @keyframes fade { from { opacity: 0; } }
 .modal {
     width: min(460px, 100%);
-    background: #fff;
+    background: var(--panel);
     border-radius: 24px;
     box-shadow: var(--shadow-l);
     padding: 22px;
@@ -540,10 +609,10 @@ textarea.input { resize: vertical; line-height: 1.6; }
 .composer-wrap { flex-shrink: 0; padding: 10px 20px 18px; position: relative; z-index: 40; }
 .composer {
     max-width: 800px; margin: 0 auto;
-    background: rgba(255,255,255,.88);
+    background: var(--glass-strong);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
-    border: 1px solid rgba(255,255,255,.9);
+    border: 1px solid var(--surface-border-strong);
     border-radius: 24px;
     box-shadow: var(--shadow-m);
     padding: 8px 8px 8px 10px;
@@ -568,13 +637,13 @@ textarea.input { resize: vertical; line-height: 1.6; }
 }
 .composer .round:hover { background: var(--well); color: var(--ink); }
 .composer .send {
-    color: #fff;
-    background: linear-gradient(160deg, #58aef8, var(--candy-deep));
+    color: var(--on-accent);
+    background: linear-gradient(160deg, var(--accent-start), var(--candy-deep));
     box-shadow: var(--gloss), 0 5px 12px -3px rgba(43,134,228,.55);
 }
 .composer .send:hover { filter: brightness(1.06); transform: translateY(-1px); }
 .composer .send:active { transform: scale(.92); }
-.composer .stop { background: linear-gradient(160deg, #f8767f, #e84b57); color: #fff; box-shadow: var(--gloss), 0 5px 12px -3px rgba(232,75,87,.5); }
+.composer .stop { background: linear-gradient(160deg, #f8767f, #e84b57); color: var(--on-accent); box-shadow: var(--gloss), 0 5px 12px -3px rgba(232,75,87,.5); }
 
 @media (max-width: 640px) {
     .composer-wrap { padding: 8px 10px 14px; }

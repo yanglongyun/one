@@ -1,11 +1,13 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useThemeStore } from '@/system/stores/theme';
 import { useModelStore } from '@/apps/settings/store';
 import { useWsStore } from '@/system/stores/ws';
 import { api, logout } from '@/system/api';
 import SettingsHeader from '../components/SettingsHeader.vue';
 import Icon from '@/system/components/Icon.vue';
 
+const theme = useThemeStore();
 const model = useModelStore();
 const ws = useWsStore();
 
@@ -22,7 +24,7 @@ const showKey = ref(false);
 const showVisionKey = ref(false);
 
 // —— 顶部分页 tab ——
-const tab = ref('model'); // model | advanced | account
+const tab = ref('appearance'); // appearance | model | advanced | account
 
 // —— 在线修改访问口令 ——
 const pwOpen = ref(false);
@@ -135,9 +137,38 @@ watch(() => ws.connected, (v) => { if (v) load(); });
             <div class="page-inner">
 
                 <div class="tabs">
+                    <button class="tab" :class="{ on: tab === 'appearance' }" @click="tab = 'appearance'">外观</button>
                     <button class="tab" :class="{ on: tab === 'model' }" @click="tab = 'model'">模型</button>
                     <button class="tab" :class="{ on: tab === 'advanced' }" @click="tab = 'advanced'">高级</button>
                     <button class="tab" :class="{ on: tab === 'account' }" @click="tab = 'account'">账户</button>
+                </div>
+
+                <!-- 外观页:主题只保存在当前浏览器和设备 -->
+                <div v-show="tab === 'appearance'">
+                    <div class="card sec">
+                        <div class="sec-head">
+                            <span class="grow">
+                                <span class="sec-title">主题</span>
+                                <div class="sec-desc">选择你喜欢的界面氛围。</div>
+                            </span>
+                        </div>
+                        <div class="srow">
+                            <span class="grow">
+                                <span class="s-label">界面主题</span>
+                                <div class="s-sub">只保存在当前浏览器和设备中</div>
+                            </span>
+                            <span class="s-ctrl">
+                                <span class="seg theme-seg" aria-label="界面主题">
+                                    <button class="seg-item" :class="{ on: theme.theme === 'sky' }" @click="theme.setTheme('sky')">
+                                        <Icon name="sun" />晴空
+                                    </button>
+                                    <button class="seg-item" :class="{ on: theme.theme === 'night' }" @click="theme.setTheme('night')">
+                                        <Icon name="moon" />谧夜
+                                    </button>
+                                </span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 模型页:主模型 + 视觉 -->
@@ -297,7 +328,7 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                 </div><!-- /高级页 -->
 
                 <!-- 保存(模型 / 高级 页共用,账户页隐藏)-->
-                <div v-show="tab !== 'account'" class="save-row">
+                <div v-show="tab === 'model' || tab === 'advanced'" class="save-row">
                     <button class="btn btn-primary" :disabled="!ws.connected || !dirty || saving" @click="save">{{ saved ? '已保存 ✓' : (saving ? '保存中…' : '保存') }}</button>
                     <button class="btn btn-plain" :disabled="!dirty || saving" @click="reset">重置</button>
                     <span v-if="!ws.connected" class="unit">连接断开,暂时只读</span>
@@ -393,6 +424,9 @@ watch(() => ws.connected, (v) => { if (v) load(); });
 .vision-hint { padding: 0 0 14px; font-size: 12px; color: var(--ink-3); }
 .vision-form { display: flex; flex-direction: column; gap: 12px; padding: 2px 0 16px; }
 .vision-form .input { font-size: 12.5px; }
+
+.theme-seg .seg-item { gap: 6px; min-width: 86px; justify-content: center; }
+.theme-seg .o-icon { width: 15px; height: 15px; }
 
 /* 保存行 */
 .save-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 0 4px; }

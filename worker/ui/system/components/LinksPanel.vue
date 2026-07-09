@@ -82,7 +82,7 @@ function go(path) { open.value = false; router.push(path); }
 <style scoped>
 .dev-card {
     border-radius: 15px;
-    background: #fff;
+    background: var(--panel);
     box-shadow: var(--shadow-s);
     border: 1px solid var(--line-soft);
     overflow: hidden;

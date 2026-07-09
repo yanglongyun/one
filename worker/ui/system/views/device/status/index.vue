@@ -214,7 +214,7 @@ watch(dev, () => { snap.value = null; cpuHist.value = []; request(); });
 .bar { height: 10px; border-radius: 99px; background: var(--well); overflow: hidden; margin-top: 12px; }
 .bar i { display: block; height: 100%; border-radius: 99px; box-shadow: var(--gloss); transition: width .5s var(--ease); }
 .bar-mem i { background: linear-gradient(90deg, #9d8bfa, #7761ef); }
-.bar-disk i { background: linear-gradient(90deg, #58aef8, var(--candy-deep)); }
+.bar-disk i { background: linear-gradient(90deg, var(--accent-start), var(--candy-deep)); }
 
 /* 网络卡:接口行 */
 .net-row { display: flex; align-items: center; gap: 8px; min-width: 0; }

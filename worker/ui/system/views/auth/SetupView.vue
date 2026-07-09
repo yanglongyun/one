@@ -79,8 +79,8 @@ async function onSubmit() {
     width: 56px; height: 56px; border-radius: 18px;
     margin: 0 auto 14px;
     display: grid; place-items: center;
-    background: linear-gradient(150deg, #62b4fa, var(--candy-deep));
-    color: #fff; font-weight: 800; font-size: 26px;
+    background: linear-gradient(150deg, var(--brand-start), var(--candy-deep));
+    color: var(--on-accent); font-weight: 800; font-size: 26px;
     box-shadow: var(--gloss), 0 8px 20px -4px rgba(43, 134, 228, .5);
 }
 .gate-title { font-size: 20px; font-weight: 800; letter-spacing: .01em; }

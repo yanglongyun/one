@@ -62,7 +62,7 @@ function openNative() {
                             </div>
                             <div class="meta" style="margin-top:2px">
                                 <span>{{ kindLabel }}</span><span class="sep"></span>
-                                <span v-if="online" style="color:#169060;font-weight:600">在线</span>
+                                <span v-if="online" style="color:var(--ok-ink);font-weight:600">在线</span>
                                 <span v-else style="color:var(--ink-3);font-weight:600">离线</span>
                             </div>
                         </span>
@@ -101,7 +101,7 @@ function openNative() {
                 <div v-if="hasFiles || hasStatus" class="entry-grid">
                     <router-link v-if="hasFiles" class="card hoverable entry" :to="`/devices/${encodeURIComponent(name)}/files`">
                         <span class="e-ico" style="--tile-glow:rgba(243,138,29,.45);background:linear-gradient(150deg,#ffb648,#f38a1d)">
-                            <Icon name="folder" style="width:18px;height:18px;color:#fff" />
+                            <Icon name="folder" style="width:18px;height:18px;color:var(--on-accent)" />
                         </span>
                         <span>
                             <div class="e-title">文件</div>
@@ -111,7 +111,7 @@ function openNative() {
                     </router-link>
                     <router-link v-if="hasStatus" class="card hoverable entry" :to="`/devices/${encodeURIComponent(name)}/status`">
                         <span class="e-ico" style="--tile-glow:rgba(47,136,232,.45);background:linear-gradient(150deg,#61b3fa,#2f88e8)">
-                            <Icon name="gauge" style="width:18px;height:18px;color:#fff" />
+                            <Icon name="gauge" style="width:18px;height:18px;color:var(--on-accent)" />
                         </span>
                         <span>
                             <div class="e-title">状态</div>
@@ -145,7 +145,7 @@ function openNative() {
 
 .entry-grid { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .entry { display: flex; align-items: center; gap: 12px; padding: 14px 16px; text-decoration: none; color: inherit; }
-.entry .e-ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: #fff; flex-shrink: 0;
+.entry .e-ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: var(--on-accent); flex-shrink: 0;
     box-shadow: var(--gloss), 0 4px 10px -3px var(--tile-glow, rgba(48,88,140,.35)); }
 .entry .e-title { font-size: 13.5px; font-weight: 700; }
 .entry .e-sub { font-size: 11.5px; color: var(--ink-3); font-weight: 500; margin-top: 2px; }
