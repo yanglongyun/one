@@ -54,7 +54,7 @@ function loadHistory() {
 }
 
 export const NAV_KEYS = [
-    { label: 'Tab', value: '\t' }, { label: 'Esc', value: '\x1b' },
+    { label: '↵ 换行', value: '\r' }, { label: 'Tab', value: '\t' }, { label: 'Esc', value: '\x1b' },
     { label: '↑', value: '\x1b[A' }, { label: '↓', value: '\x1b[B' },
     { label: '←', value: '\x1b[D' }, { label: '→', value: '\x1b[C' },
     { label: 'PgUp', value: '\x1b[5~' }, { label: 'PgDn', value: '\x1b[6~' },

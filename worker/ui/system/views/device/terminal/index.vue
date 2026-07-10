@@ -29,10 +29,10 @@ function setContainer(id, element) {
 }
 
 onMounted(() => {
-    initialize();
     observer = new ResizeObserver(() => terminal.scheduleFit());
     if (stage.value) observer.observe(stage.value);
 });
+// 页面由 KeepAlive 承载，首次挂载时也会触发 onActivated；只在这里初始化，避免首屏重复请求。
 onActivated(initialize);
 onUnmounted(() => observer?.disconnect());
 watch(device, initialize);

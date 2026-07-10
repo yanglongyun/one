@@ -55,7 +55,7 @@ const toolsOpen = ref(false);
 .terminal-tabs::-webkit-scrollbar { display: none; }
 .terminal-tab { flex: 0 0 auto; width: 190px; height: 36px; padding: 0 6px 0 10px; display: flex; align-items: center; border-radius: 9px; color: var(--ink-3); border: 1px solid transparent; transition: background .15s, color .15s, border-color .15s; }
 .terminal-tab:hover { background: var(--surface-hover); color: var(--ink2); }
-.terminal-tab.on { background: var(--panel); color: var(--candy-deep); border-color: var(--surface-border); box-shadow: var(--shadow-s); }
+.terminal-tab.on { background: var(--panel); color: var(--candy-deep); border-color: var(--line-hi); box-shadow: 0 0 0 1px var(--candy-ring), var(--shadow-s); }
 .terminal-tab-main { min-width: 0; flex: 1; height: 100%; display: flex; align-items: center; gap: 8px; color: inherit; }
 .terminal-tab-main > .o-icon { width: 15px; height: 15px; flex-shrink: 0; }
 .terminal-tab-text { min-width: 0; flex: 1; display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }

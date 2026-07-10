@@ -32,6 +32,7 @@ fn manager() -> &'static Arc<TerminalManager> {
 struct TerminalManager {
     sessions: Mutex<HashMap<String, Arc<TerminalSession>>>,
     tx: Mutex<Option<Tx>>,
+    create_lock: Mutex<()>,
 }
 
 struct TerminalSession {
@@ -79,6 +80,26 @@ impl TerminalManager {
     }
 
     fn create(self: &Arc<Self>, data: &Value) -> Result<Value, String> {
+        let _guard = self.create_lock.lock().unwrap_or_else(|e| e.into_inner());
+        self.create_locked(data)
+    }
+
+    // terminal.list 可能因页面生命周期/重连被并发请求。锁内再次检查，确保默认会话只创建一次。
+    fn ensure_default(self: &Arc<Self>) -> Result<Option<Value>, String> {
+        let _guard = self.create_lock.lock().unwrap_or_else(|e| e.into_inner());
+        if !self
+            .sessions
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .is_empty()
+        {
+            return Ok(None);
+        }
+        self.create_locked(&json!({})).map(Some)
+    }
+
+    // 调用方必须持有 create_lock；同时让会话上限检查和插入保持原子。
+    fn create_locked(self: &Arc<Self>, data: &Value) -> Result<Value, String> {
         if self
             .sessions
             .lock()
@@ -294,11 +315,10 @@ pub async fn handle(typ: &str, data: Value, tx: &Tx) {
 
     let result: Result<(), String> = match typ {
         "terminal.list" => {
-            if manager.list().is_empty() {
-                match manager.create(&json!({})) {
-                    Ok(meta) => manager.emit("terminal.created", json!({ "terminal": meta })),
-                    Err(error) => manager.emit("terminal.error", json!({ "error": error })),
-                }
+            match manager.ensure_default() {
+                Ok(Some(meta)) => manager.emit("terminal.created", json!({ "terminal": meta })),
+                Ok(None) => {}
+                Err(error) => manager.emit("terminal.error", json!({ "error": error })),
             }
             manager.emit("terminal.list", json!({ "terminals": manager.list() }));
             Ok(())
@@ -407,9 +427,44 @@ fn resolve_cwd(raw: Option<&str>) -> Result<PathBuf, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Barrier;
     use tokio::sync::mpsc;
     use tokio::time::{timeout, Duration};
     use tokio_tungstenite::tungstenite::Message;
+
+    #[test]
+    fn concurrent_default_creation_is_idempotent() {
+        let manager = Arc::new(TerminalManager::default());
+        let barrier = Arc::new(Barrier::new(6));
+        let workers: Vec<_> = (0..6)
+            .map(|_| {
+                let manager = manager.clone();
+                let barrier = barrier.clone();
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    manager.ensure_default().expect("ensure default terminal")
+                })
+            })
+            .collect();
+
+        let created = workers
+            .into_iter()
+            .filter_map(|worker| worker.join().expect("join default terminal worker"))
+            .count();
+        let terminals = manager.list();
+        assert_eq!(
+            created, 1,
+            "only one request may create the default terminal"
+        );
+        assert_eq!(
+            terminals.len(),
+            1,
+            "manager must contain one default terminal"
+        );
+
+        let id = terminals[0]["id"].as_str().expect("terminal id");
+        manager.close(id, "test complete").expect("close PTY");
+    }
 
     #[tokio::test]
     async fn pty_round_trip_reaches_websocket_sink() {
