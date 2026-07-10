@@ -24,7 +24,7 @@ const showKey = ref(false);
 const showVisionKey = ref(false);
 
 // —— 顶部分页 tab ——
-const tab = ref('appearance'); // appearance | model | advanced | account
+const tab = ref('model'); // model | advanced | account | appearance
 
 // —— 在线修改访问口令 ——
 const pwOpen = ref(false);
@@ -137,10 +137,10 @@ watch(() => ws.connected, (v) => { if (v) load(); });
             <div class="page-inner">
 
                 <div class="tabs">
-                    <button class="tab" :class="{ on: tab === 'appearance' }" @click="tab = 'appearance'">外观</button>
                     <button class="tab" :class="{ on: tab === 'model' }" @click="tab = 'model'">模型</button>
                     <button class="tab" :class="{ on: tab === 'advanced' }" @click="tab = 'advanced'">高级</button>
                     <button class="tab" :class="{ on: tab === 'account' }" @click="tab = 'account'">账户</button>
+                    <button class="tab" :class="{ on: tab === 'appearance' }" @click="tab = 'appearance'">外观</button>
                 </div>
 
                 <!-- 外观页:主题只保存在当前浏览器和设备 -->
