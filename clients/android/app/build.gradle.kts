@@ -11,8 +11,8 @@ android {
         applicationId = "com.oneapp.one"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.2.0"
+        versionCode = 4
+        versionName = "0.4.0"
         // 云端 worker 地址(安卓的手连这里;改域名只动这一行)
         buildConfigField("String", "WORKER_URL", "\"\"")
     }

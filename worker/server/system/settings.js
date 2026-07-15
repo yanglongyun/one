@@ -4,18 +4,14 @@ const DEFAULTS = {
     apiUrl: '',
     apiKey: '',
     model: '',
-    system: '',
     recentRawMessages: '100',
-    compressThreshold: '12000',
+    compressThreshold: '64000',
     toolResultMaxChars: '12000',
     toolMaxRounds: '50',
-    authMode: 'bearer', // 主模型认证:bearer(Authorization) | x-api-key(Claude 端点)
-    // 视觉:visionEnabled='1' 时复用主模型做视觉;否则用下面这套独立视觉模型。
-    visionEnabled: '',
-    visionApiUrl: '',
-    visionApiKey: '',
-    visionModel: '',
-    visionAuthMode: 'bearer',
+    authMode: 'bearer', // OpenAI chat/completions 请求的认证头:Authorization Bearer 或 x-api-key
+    thinkingEnabled: '',
+    reasoningEffort: '',
+    maxOutputTokens: '',
 };
 
 export function settings(db) {

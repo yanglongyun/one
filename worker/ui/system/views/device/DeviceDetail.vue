@@ -17,7 +17,6 @@ const CAP_META = {
     files: { icon: 'folder', label: '文件' },
     status: { icon: 'gauge', label: '状态' },
     screen: { icon: 'hand', label: '屏幕操控' },
-    vision: { icon: 'eye', label: '截屏理解' },
 };
 
 const name = computed(() => decodeURIComponent(String(route.params.name || '')));

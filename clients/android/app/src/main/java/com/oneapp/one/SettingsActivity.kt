@@ -311,7 +311,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
     private fun startHand() {
-        val svc = Intent(this, DeviceService::class.java)
+        val svc = Intent(this, DeviceService::class.java).setAction(DeviceService.ACTION_RECONNECT)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(svc) else startService(svc)
     }
 

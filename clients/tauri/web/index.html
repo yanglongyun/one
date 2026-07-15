@@ -195,10 +195,9 @@
       </div>
 
       <div id="perms" style="display:none">
-        <div class="sect">MACOS 权限 · 电脑控制 / 截屏需要</div>
+        <div class="sect">MACOS 权限 · 电脑控制需要</div>
         <div class="rows" style="border-top:0">
           <div class="row"><span class="label">辅助功能</span><span class="grow"></span><span id="p-ax"></span></div>
-          <div class="row"><span class="label">屏幕录制</span><span class="grow"></span><span id="p-sc"></span></div>
         </div>
       </div>
 
@@ -265,17 +264,16 @@
         const p = await invoke('mac_permissions');
         if (!p.supported) return;
         $('perms').style.display = 'block';
-        const cell = (id, granted, pane) => {
+        const cell = (id, granted) => {
           const el = $(id);
           el.innerHTML = granted
             ? '<span class="pill ok"><span class="dot"></span>已授权</span>'
             : '<button class="grant">去授权</button>';
           const b = el.querySelector('button');
-          if (b) b.onclick = async () => { await invoke('open_privacy_settings', { pane }); setTimeout(refreshPerms, 3000); };
+          if (b) b.onclick = async () => { await invoke('open_privacy_settings'); setTimeout(refreshPerms, 3000); };
         };
-        cell('p-ax', p.accessibility, 'accessibility');
-        cell('p-sc', p.screenRecording, 'screen');
-      } catch (e) { /* 非 tauri 环境或旧版:忽略 */ }
+        cell('p-ax', p.accessibility);
+      } catch (e) { /* 非 Tauri 环境不展示权限区 */ }
     }
 
     $('autostart').onchange = async (e) => {

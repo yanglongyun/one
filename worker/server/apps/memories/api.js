@@ -1,6 +1,6 @@
 import * as repo from './repository.js';
 
-const readLimit = (url, fallback = 200) => Math.max(1, Math.min(500, Number(url.searchParams.get('limit')) || fallback));
+const readLimit = (url, fallback = 50) => Math.max(1, Math.min(200, Number(url.searchParams.get('limit')) || fallback));
 
 export default async function memoriesApi(request, ctx, { id }) {
     const { db } = ctx;
@@ -19,26 +19,36 @@ export default async function memoriesApi(request, ctx, { id }) {
 
         if (!id) {
             if (request.method === 'GET') {
+                const limit = readLimit(url);
+                const rows = await repo.list(db, {
+                    visibility: url.searchParams.get('visibility') || '',
+                    limit: limit + 1,
+                    cursor: url.searchParams.get('cursor') || '',
+                });
+                const hasMore = rows.length > limit;
+                const memories = hasMore ? rows.slice(0, limit) : rows;
                 return Response.json({
-                    memories: await repo.list(db, {
-                        visibility: url.searchParams.get('visibility') || '',
-                        limit: readLimit(url),
-                        offset: Number(url.searchParams.get('offset')) || 0,
-                    }),
+                    memories,
+                    nextCursor: hasMore ? String(memories.at(-1)?.id || '') : null,
                 });
             }
             if (request.method === 'POST') {
                 const body = await request.json().catch(() => ({}));
-                return Response.json({ memory: await repo.create(db, body, now) });
+                const memory = await repo.create(db, body, now);
+                await ctx.hub.notifyWeb({ type: 'memories.changed' });
+                return Response.json({ memory });
             }
         } else {
             if (request.method === 'GET') return Response.json({ memory: await repo.get(db, id) });
             if (request.method === 'PUT') {
                 const body = await request.json().catch(() => ({}));
-                return Response.json({ memory: await repo.update(db, id, body, now) });
+                const memory = await repo.update(db, id, body, now);
+                await ctx.hub.notifyWeb({ type: 'memories.changed' });
+                return Response.json({ memory });
             }
             if (request.method === 'DELETE') {
                 await repo.remove(db, id);
+                await ctx.hub.notifyWeb({ type: 'memories.changed' });
                 return Response.json({ ok: true });
             }
         }

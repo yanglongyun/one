@@ -30,18 +30,58 @@ async function setStatus(status) {
 
 /* ── 推进记录:GET /api/tasks 按 origin 过滤 ─────── */
 const runs = ref([]);
-async function loadRuns() {
-    try {
-        const res = await api.get('/api/tasks');
-        runs.value = (res.tasks || []).filter((t) => t.origin === 'goal' && String(t.origin_id) === id.value);
-    } catch { runs.value = []; }
+const runCursors = ref({ goal: '', goal_review: '' });
+const loadingRuns = ref(false);
+
+async function loadRunPage(origin, cursor = '') {
+    const query = new URLSearchParams({ origin, origin_id: id.value, limit: '50' });
+    if (cursor) query.set('cursor', cursor);
+    return api.get(`/api/tasks?${query}`);
 }
+
+function mergeRuns(pages, reset) {
+    const previous = reset ? [] : runs.value;
+    const byId = new Map(previous.map((task) => [task.id, task]));
+    for (const page of pages) for (const task of page.tasks || []) byId.set(task.id, task);
+    runs.value = [...byId.values()].sort((a, b) => b.created_at - a.created_at || String(b.id).localeCompare(String(a.id)));
+}
+
+async function loadRuns() {
+    loadingRuns.value = true;
+    try {
+        const [work, reviews] = await Promise.all([
+            loadRunPage('goal'),
+            loadRunPage('goal_review'),
+        ]);
+        mergeRuns([work, reviews], true);
+        runCursors.value = { goal: work.nextCursor || '', goal_review: reviews.nextCursor || '' };
+    } catch {
+        runs.value = [];
+        runCursors.value = { goal: '', goal_review: '' };
+    } finally { loadingRuns.value = false; }
+}
+
+async function loadMoreRuns() {
+    if (loadingRuns.value) return;
+    const entries = Object.entries(runCursors.value).filter(([, cursor]) => cursor);
+    if (!entries.length) return;
+    loadingRuns.value = true;
+    try {
+        const pages = await Promise.all(entries.map(([origin, cursor]) => loadRunPage(origin, cursor)));
+        mergeRuns(pages, false);
+        const cursors = { ...runCursors.value };
+        entries.forEach(([origin], index) => { cursors[origin] = pages[index].nextCursor || ''; });
+        runCursors.value = cursors;
+    } finally { loadingRuns.value = false; }
+}
+const hasMoreRuns = computed(() => Object.values(runCursors.value).some(Boolean));
 const TASK_META = {
     pending: { label: '等待中', pill: 'pill-wait', dot: 'dot-wait' },
     running: { label: '执行中', pill: 'pill-run', dot: 'dot-run' },
     done: { label: '完成', pill: 'pill-ok', dot: 'dot-ok' },
     failed: { label: '失败', pill: 'pill-bad', dot: 'dot-bad' },
     aborted: { label: '已中止', pill: 'pill-halt', dot: 'dot-halt' },
+    cancelled: { label: '已取消', pill: 'pill-halt', dot: 'dot-halt' },
 };
 const metaOf = (t) => TASK_META[t.status] || TASK_META.pending;
 
@@ -83,12 +123,12 @@ function fmtNext(ts) {
     return `${Math.round(h / 24)} 天后`;
 }
 
-// 立即推进:把 next_run_at 排到现在,cron 一分钟内开推进任务
+// 立即推进:把 next_run_at 排到现在,由 DO alarm 立刻接手。
 async function advanceNow() {
     if (!goal.value) return;
     await goals.save({ id: goal.value.id, next_run_at: Date.now() });
     await goals.load();
-    loadTasks();
+    loadRuns();
 }
 
 async function save() {
@@ -105,6 +145,7 @@ async function del() {
 }
 
 onMounted(async () => {
+    goals.bind();
     if (!goals.items.length) await goals.load();
     loadRuns();
 });
@@ -169,6 +210,7 @@ onMounted(async () => {
                             <span class="pill" :class="metaOf(t).pill"><i></i>{{ metaOf(t).label }}</span>
                             <span class="go"><Icon name="back" style="width:15px;height:15px" /></span>
                         </div>
+                        <button v-if="hasMoreRuns" class="btn btn-plain load-more" :disabled="loadingRuns" @click="loadMoreRuns">{{ loadingRuns ? '加载中…' : '加载更多' }}</button>
                     </div>
                 </template>
             </div>
@@ -216,4 +258,5 @@ onMounted(async () => {
 .task-title { font-size: 13.5px; font-weight: 700; }
 .task-time { font-size: 11.5px; color: var(--ink-3); font-weight: 500; margin-top: 3px; }
 .go { width: 15px; height: 15px; color: var(--ink-4); transform: scaleX(-1); flex-shrink: 0; }
+.load-more { align-self: center; margin-top: 2px; }
 </style>

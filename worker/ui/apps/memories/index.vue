@@ -75,7 +75,7 @@ function fmtTime(ts) {
     return `${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
-onMounted(() => memories.load());
+onMounted(() => { memories.bind(); memories.load(); });
 </script>
 
 <template>
@@ -126,6 +126,7 @@ onMounted(() => memories.load());
                         <div class="meta mt-2"><span>{{ fmtTime(item.updated_at || item.created_at) }} 更新</span></div>
                     </div>
                 </div>
+                <button v-if="memories.nextCursor" class="btn btn-plain load-more" :disabled="memories.loading" @click="memories.loadMore">{{ memories.loading ? '加载中…' : '加载更多' }}</button>
             </div>
         </main>
 
@@ -179,6 +180,7 @@ onMounted(() => memories.load());
 .search-box input::placeholder { color: var(--ink-4); }
 
 .glist { display: flex; flex-direction: column; gap: 10px; }
+.load-more { display: flex; margin: 14px auto 0; }
 
 .mem-card { padding: 14px 16px 12px; }
 .mem-title { font-size: 14px; font-weight: 700; }

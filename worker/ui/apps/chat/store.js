@@ -18,6 +18,8 @@ export const useChatStore = defineStore('chat', () => {
 
     // ── 会话列表 ──
     const chats = ref([]);
+    const chatNextCursor = ref('');
+    const loadingChats = ref(false);
     const panelOpen = ref(false); // 会话侧栏(topbar 之下,推开对话区)
     const currentId = ref('');
     const currentChat = computed(() => chats.value.find((c) => c.id === currentId.value) || null);
@@ -25,12 +27,14 @@ export const useChatStore = defineStore('chat', () => {
     // ── 当前会话消息态 ──
     const messages = ref([]);
     const busy = ref(false);
+    const aborting = ref(false);
     const ready = ref(false);
     const streamTick = ref(0);
     const viewSeq = ref(0);
     const hasMore = ref(false);
     const loadingOlder = ref(false);
     const PAGE = 50;
+    const CHAT_PAGE = 50;
     let oldestId = 0;
     let lastSig = '';
 
@@ -46,21 +50,68 @@ export const useChatStore = defineStore('chat', () => {
     // stream.js 按创建时传入的 threadId 过滤事件,切会话时必须重建
     function rebuildStream() {
         stream?.resetStreaming();
-        stream = setupThreadStream({ threadId: currentId.value, messages, busy, pushRow, bumpStream });
+        stream = setupThreadStream({ threadId: currentId.value, messages, busy, pushRow, refresh, bumpStream });
     }
 
     function bind() {
         if (bound) return;
         bound = true;
-        ws.onMessage('chat.*', (e) => stream?.onEvent(e));
+        ws.onMessage('chat.*', (e) => {
+            stream?.onEvent(e);
+            if ((e.threadId || null) === (currentId.value || null) && ['chat.done', 'chat.aborted', 'chat.error'].includes(e.type)) {
+                aborting.value = false;
+            }
+        });
         // 后端在会话首条消息后自动起标题并广播 chats.changed
         ws.onMessage('chats.changed', () => loadChats());
+        ws.onMessage('chat.deleted', async (e) => {
+            await loadChats();
+            if (e.threadId !== currentId.value) return;
+            currentId.value = '';
+            messages.value = [];
+            ready.value = false;
+            busy.value = false;
+            aborting.value = false;
+            const next = chats.value[0]?.id;
+            if (next) await switchChat(next);
+            else await createChat();
+        });
     }
 
     async function loadChats() {
-        const d = await api.get('/api/chats').catch(() => null);
-        if (d) chats.value = d.chats || [];
+        if (loadingChats.value) return chats.value;
+        loadingChats.value = true;
+        const target = Math.max(CHAT_PAGE, chats.value.length);
+        const rows = [];
+        let cursor = '';
+        try {
+            do {
+                const params = new URLSearchParams({ limit: String(CHAT_PAGE) });
+                if (cursor) params.set('cursor', cursor);
+                const result = await api.get(`/api/chats?${params}`).catch(() => null);
+                if (!result) return chats.value;
+                rows.push(...(result.chats || []));
+                cursor = result.nextCursor || '';
+            } while (cursor && rows.length < target);
+            chats.value = rows;
+            chatNextCursor.value = cursor;
+        } finally {
+            loadingChats.value = false;
+        }
         return chats.value;
+    }
+
+    async function loadMoreChats() {
+        if (!chatNextCursor.value || loadingChats.value) return;
+        loadingChats.value = true;
+        try {
+            const result = await api.get(`/api/chats?limit=${CHAT_PAGE}&cursor=${encodeURIComponent(chatNextCursor.value)}`);
+            const known = new Set(chats.value.map((chat) => chat.id));
+            chats.value.push(...(result.chats || []).filter((chat) => !known.has(chat.id)));
+            chatNextCursor.value = result.nextCursor || '';
+        } finally {
+            loadingChats.value = false;
+        }
     }
 
     // 入口:拉会话列表 → 恢复/兜底 currentId → 绑流 → 拉消息。可重复调用(重连时)。
@@ -110,6 +161,7 @@ export const useChatStore = defineStore('chat', () => {
         oldestId = 0;
         lastSig = '';
         busy.value = false;
+        aborting.value = false;
         rebuildStream();
         await refresh();
     }
@@ -136,9 +188,10 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     async function removeChat(id) {
-        await api.del(`/api/chats/${id}`).catch(() => null);
+        const removed = await api.del(`/api/chats/${id}`).catch(() => null);
+        if (!removed?.ok) return false;
         await loadChats();
-        if (id !== currentId.value) return;
+        if (id !== currentId.value) return true;
         // 删的是当前会话:切到列表第一条;列表空了就新建一条
         currentId.value = ''; // 保证 switchChat 不被同 id 短路
         const next = chats.value[0]?.id;
@@ -151,6 +204,7 @@ export const useChatStore = defineStore('chat', () => {
                 await switchChat(d.chat.id);
             }
         }
+        return true;
     }
 
     // 上滑加载更早一页:往 messages 头部插入,返回本次条数(MessageStream 据此维持滚动位置)
@@ -170,31 +224,52 @@ export const useChatStore = defineStore('chat', () => {
         }
     }
 
-    async function send(text, images = []) {
+    async function send(text, retryRow = null) {
         const content = (text || '').trim();
-        const files = Array.isArray(images) ? images.slice(0, 10) : [];
-        if ((!content && !files.length) || busy.value || !currentId.value) return;
-        pushRow({ role: 'user', _key: mkKey('user'), content, images: files });
+        if (!content || busy.value || !currentId.value) return;
+        const row = retryRow || pushRow({
+            role: 'user', _key: mkKey('user'), content,
+            clientId: crypto.randomUUID(), sending: true, failed: false,
+        });
+        row.clientId ||= crypto.randomUUID();
+        row.sending = true;
+        row.failed = false;
         busy.value = true;
+        aborting.value = false;
         viewSeq.value++;
         bumpStream();
-        ws.sendMsg({ type: 'chat.input', threadId: currentId.value, text: content, images: files });
+        const sent = ws.sendMsg({
+            type: 'chat.input', threadId: currentId.value, text: content,
+            clientId: row.clientId,
+        });
+        if (!sent) {
+            row.sending = false;
+            row.failed = true;
+            busy.value = false;
+            bumpStream();
+        }
+    }
+
+    function retry(row) {
+        if (!row?.failed) return;
+        return send(row.content, row);
     }
 
     function abort() {
+        if (!busy.value || aborting.value) return;
+        aborting.value = true;
         ws.sendMsg({ type: 'chat.abort', threadId: currentId.value });
-        busy.value = false;
         stream?.resetStreaming();
         bumpStream();
     }
 
     return {
         panelOpen,
-        chats, currentId, currentChat,
-        messages, busy, ready,
+        chats, currentId, currentChat, chatNextCursor, loadingChats,
+        messages, busy, aborting, ready,
         streamTick, viewSeq, hasMore, loadingOlder,
-        bind, init, loadChats, refresh, loadOlder,
+        bind, init, loadChats, loadMoreChats, refresh, loadOlder,
         switchChat, createChat, togglePin, renameChat, removeChat,
-        send, abort,
+        send, retry, abort,
     };
 });

@@ -50,7 +50,7 @@ const blocks = computed(() => {
 });
 
 // ── 滚动:正常布局 + 「粘底」标志 ──
-// stick=true 时,任何内容高度变化(新消息、markdown/图片延迟撑高、流式吐字)都瞬时贴底;
+// stick=true 时,任何内容高度变化(新消息、markdown 渲染、流式吐字)都瞬时贴底;
 // 用户手动向上滚离底部 → stick=false,不再打扰;滚回底部 → 重新粘上。ResizeObserver 兜住异步高度。
 let stick = true;
 let restoreFromTop = 0; // >0 表示本次高度增长来自「加载更早」,需保持视口不跳
@@ -119,15 +119,10 @@ watch(() => chat.viewSeq, () => {
 
                 <div v-else-if="block.message.role === 'user'" class="msg-user rise-enter">
                     <div class="bubble">
-                        <div v-if="block.message.images?.length" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end" :style="block.message.content ? 'margin-bottom:6px' : ''">
-                            <span v-for="(f, i) in block.message.images" :key="i" style="display:inline-flex;align-items:center;gap:5px;max-width:200px;padding:3px 9px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.18)">
-                                <img v-if="f.dataUrl" :src="f.dataUrl" :alt="f.name" style="width:18px;height:18px;border-radius:5px;object-fit:cover;flex-shrink:0" />
-                                <Icon v-else name="clip" style="width:12px;height:12px;flex-shrink:0" />
-                                <span style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.name }}</span>
-                            </span>
-                        </div>
-                        <template v-if="block.message.content">{{ block.message.content }}</template>
+                        {{ block.message.content }}
                     </div>
+                    <div v-if="block.message.sending" class="send-state">发送中…</div>
+                    <button v-else-if="block.message.failed" class="retry-btn" @click="chat.retry(block.message)">发送失败 · 点击重试</button>
                 </div>
 
                 <div v-else-if="block.message.role === 'assistant'" class="msg-ai rise-enter">
@@ -139,11 +134,6 @@ watch(() => chat.viewSeq, () => {
                         <div v-if="block.message.streaming" class="msg-time" style="color:var(--run)">正在输出…</div>
                     </div>
                 </div>
-
-                <div v-else-if="block.message.type === 'shot'" style="align-self:center;margin:10px 0;max-width:92%">
-                    <img style="max-width:100%;border-radius:14px;box-shadow:var(--shadow-m)" :src="block.message.dataUrl" alt="屏幕截图" />
-                </div>
-
                 <span v-else-if="block.message.role === 'system'" class="sys-chip">{{ block.message.content }}<router-link
                         v-if="block.message.code === 'model_unconfigured'"
                         to="/settings"
@@ -222,6 +212,15 @@ watch(() => chat.viewSeq, () => {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
+.send-state, .retry-btn {
+    display: block;
+    margin: 3px 6px 0 auto;
+    color: var(--ink-4);
+    font-size: 10.5px;
+    font-weight: 600;
+}
+.retry-btn { color: var(--bad); cursor: pointer; }
+.retry-btn:hover { text-decoration: underline; }
 /* 消息气泡可选中复制(覆盖 WebView 默认的不可选) */
 .msg-user .bubble, .msg-ai .bubble, .msg-ai .md {
     user-select: text;

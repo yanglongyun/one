@@ -79,6 +79,9 @@ function fmtTime(ts) {
                         </button>
                     </span>
                 </div>
+                <button v-if="chat.chatNextCursor" class="chat-more" :disabled="chat.loadingChats" @click="chat.loadMoreChats">
+                    {{ chat.loadingChats ? '加载中…' : '加载更多会话' }}
+                </button>
                 <div v-if="!chat.chats.length" class="chat-empty">还没有会话</div>
             </div>
         </div>
@@ -178,6 +181,8 @@ function fmtTime(ts) {
 .row-ops .op.pinned :deep(svg) { fill: currentColor; }
 .row-ops .op.danger:hover { color: var(--bad); }
 .chat-empty { padding: 18px 0; text-align: center; font-size: 12px; color: var(--ink-3); }
+.chat-more { flex: 0 0 auto; margin: 5px 8px; padding: 7px; border-radius: 9px; color: var(--candy-deep); font-size: 11px; font-weight: 700; }
+.chat-more:hover { background: var(--candy-soft); }
 
 .side-mask { display: none; }
 

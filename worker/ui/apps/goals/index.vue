@@ -27,7 +27,7 @@ async function create() {
     creating.value = false;
 }
 
-onMounted(() => goals.load());
+onMounted(() => { goals.bind(); goals.load(); });
 </script>
 
 <template>
@@ -44,7 +44,7 @@ onMounted(() => goals.load());
                     <div class="empty">
                         <div class="empty-art"><Icon name="goals" style="width:34px;height:34px" /></div>
                         <div class="empty-title">还没有目标</div>
-                        <div class="empty-sub">设一个方向,让它在对话或任务里持续替你往前推。</div>
+                        <div class="empty-sub">写清完成标准,AI 会自动推进;每轮完成后独立评估,未达标就继续。</div>
                     </div>
                 </div>
 
@@ -62,8 +62,9 @@ onMounted(() => goals.load());
                         <div v-if="item.prompt" class="goal-desc ellipsis">{{ item.prompt }}</div>
                     </div>
                 </div>
+                <button v-if="goals.nextCursor" class="btn btn-plain load-more" :disabled="goals.loading" @click="goals.loadMore">{{ goals.loading ? '加载中…' : '加载更多' }}</button>
 
-                <div class="foot-note">目标不带定时——要固定节奏推进,给它配一条<router-link to="/schedules">日程</router-link>。</div>
+                <div class="foot-note">目标会自动推进并验收;需要你决策时会暂停,达成后自动停止。</div>
             </div>
         </main>
 
@@ -92,6 +93,7 @@ onMounted(() => goals.load());
 
 <style scoped>
 .list { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+.load-more { display: flex; margin: 14px auto 0; }
 .pill-live { background: var(--candy-soft); color: var(--candy-deep); }
 .goal-card { padding: 17px 18px 15px; position: relative; }
 .goal-title { font-size: 15px; font-weight: 700; }

@@ -24,10 +24,18 @@ pub async fn run() {
             continue;
         }
         let started = Instant::now();
-        if let Err(e) = serve(&cfg).await {
-            config::log(&format!("连接断开: {e}"));
-        }
+        let config_changed = match serve(&cfg).await {
+            Ok(()) => false,
+            Err(e) => {
+                config::log(&format!("连接断开: {e}"));
+                e == "连接配置已更新"
+            }
+        };
         crate::set_conn_status(false);
+        if config_changed {
+            backoff = Duration::from_secs(3);
+            continue;
+        }
         // 只要这次连接活过了 ping 周期,就视为「曾成功连上」,退避复位
         if started.elapsed() >= PING_INTERVAL {
             backoff = Duration::from_secs(3);
@@ -39,6 +47,7 @@ pub async fn run() {
 }
 
 async fn serve(cfg: &Config) -> Result<(), String> {
+    let config_revision = config::revision();
     // https→wss / http→ws / 无 scheme 的裸域名默认走 wss(与安卓端一致,避免明文传密码)
     let ws_base = match cfg.worker_url.strip_prefix("http") {
         Some(rest) => format!("ws{rest}"),
@@ -77,12 +86,18 @@ async fn serve(cfg: &Config) -> Result<(), String> {
         "computer_type",
         "computer_key",
         "computer_open_app",
-        "screenshot",
     ];
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     let caps: &[&str] = &["shell", "files", "status", "terminal"];
     let _ = tx.send(Message::Text(
-        serde_json::json!({ "type": "hello", "kind": "desktop", "name": name, "caps": caps })
+        serde_json::json!({
+            "type": "hello",
+            "protocolVersion": 1,
+            "clientVersion": env!("CARGO_PKG_VERSION"),
+            "kind": "desktop",
+            "name": name,
+            "caps": caps
+        })
             .to_string(),
     ));
 
@@ -99,8 +114,10 @@ async fn serve(cfg: &Config) -> Result<(), String> {
     // 超过 75s 没消息 → 判死返回 Err,触发外层重连(应对睡眠/切网后 read 永远挂起)。
     let mut last_rx = Instant::now();
     let mut tick = tokio::time::interval(PING_INTERVAL);
+    let mut config_tick = tokio::time::interval(Duration::from_secs(1));
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
     tick.tick().await; // 第一个 tick 立即返回,跳过
+    config_tick.tick().await;
 
     let result: Result<(), String> = loop {
         tokio::select! {
@@ -128,6 +145,11 @@ async fn serve(cfg: &Config) -> Result<(), String> {
                 }
                 let _ = tx.send(Message::Ping(Vec::new()));
             }
+            _ = config_tick.tick() => {
+                if config::revision() != config_revision {
+                    break Err("连接配置已更新".to_string());
+                }
+            }
         }
     };
     drop(tx);
@@ -135,7 +157,7 @@ async fn serve(cfg: &Config) -> Result<(), String> {
     result
 }
 
-// 最小百分号编码(token 一般是 URL 安全的 JWT,这里兜底非保留字符)。
+// 对密码做 URL 查询参数编码。
 fn urlencode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for b in s.bytes() {

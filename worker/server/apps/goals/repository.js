@@ -2,7 +2,16 @@ const COLS = 'id, title, prompt, status, next_run_at, last_report, created_at, u
 const STATUSES = new Set(['active', 'paused', 'done', 'abandoned']);
 const status = (v) => (STATUSES.has(String(v)) ? String(v) : 'active');
 
-export const list = async (db) => (await db.prepare(`SELECT ${COLS} FROM goals ORDER BY id DESC`).all()).results;
+export const list = async (db, { cursor = '', limit = 50 } = {}) => {
+    const [timeRaw, idRaw] = String(cursor || '').split('.');
+    const time = Number(timeRaw) || Number.MAX_SAFE_INTEGER;
+    const id = Number(idRaw) || Number.MAX_SAFE_INTEGER;
+    return (await db.prepare(`
+      SELECT ${COLS} FROM goals
+      WHERE created_at < ? OR (created_at = ? AND id < ?)
+      ORDER BY created_at DESC, id DESC LIMIT ?
+    `).bind(time, time, id, limit + 1).all()).results;
+};
 
 export const get = (db, id) => db.prepare(`SELECT ${COLS} FROM goals WHERE id = ?`).bind(id).first();
 

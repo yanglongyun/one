@@ -9,6 +9,7 @@ import appsRoutes from './apps/index.js';
 import { serveApp, SDK_SOURCE } from './apps/app/serve.js';
 import identityRoutes from './system/identity/api.js';
 import { verify } from './system/identity/service.js';
+import { releaseManifest, serveDownload } from './system/downloads.js';
 
 export { OneHub } from './system/realtime/hub.js';
 
@@ -21,13 +22,6 @@ const PUBLIC = new Set([
 ]);
 
 export default {
-    // Cron Trigger(见 wrangler.jsonc 的 triggers.crons,每分钟一次):扫日程到期,到点开 task。
-    async scheduled(event, env) {
-        const hub = env.HUB.get(env.HUB.idFromName('one'));
-        await hub.checkSchedules();
-        await hub.checkGoals();
-    },
-
     async fetch(request, env) {
         const url = new URL(request.url);
         const area = url.pathname.slice(1).split('/')[0];
@@ -49,6 +43,11 @@ export default {
         const parts = url.pathname.split('/').filter(Boolean);
         const resource = parts[1];
 
+        if (resource === 'downloads') {
+            if (!parts[2]) return Response.json(await releaseManifest(env));
+            return serveDownload(env, parts[2]);
+        }
+
         // 实时:单用户 → 唯一 hub 实例(WS 在 DO 内验 ?token= / ?password=)
         if (resource === 'realtime') {
             return env.HUB.get(env.HUB.idFromName('one')).fetch(request);
@@ -62,7 +61,8 @@ export default {
             return new Response(SDK_SOURCE, { headers: { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' } });
         }
 
-        const ctx = { env, db: env.DB };
+        const hub = env.HUB.get(env.HUB.idFromName('one'));
+        const ctx = { env, db: env.DB, hub };
 
         // HTTP 鉴权:统一 Bearer JWT。public 端点放行,其余必须有效 token。
         if (!PUBLIC.has(url.pathname)) {

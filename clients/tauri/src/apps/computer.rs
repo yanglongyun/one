@@ -1,33 +1,20 @@
 // mac 电脑控制(经 AppleScript / System Events;按元素名操作,无需视觉)。
 // 需用户在「系统设置 → 隐私与安全性 → 辅助功能 / 自动化」给 one 授权。
-// 截图能力统一叫 screenshot,让「看屏」更可靠(自绘/画布类界面 AX 读不到)。
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use std::process::Stdio;
 
-#[cfg(any(target_os = "macos", target_os = "windows"))]
-use base64::Engine;
 use serde_json::{json, Value};
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use tokio::process::Command;
 
 pub fn owns(name: &str) -> bool {
-    name.starts_with("computer_") || name == "screenshot"
+    name.starts_with("computer_")
 }
 
 // 其它平台(如 Linux):这些能力不宣告(见 connection.rs),即便被点名也礼貌拒绝。
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 pub async fn run(_name: &str, _args: &Value) -> Value {
     json!({ "error": "此平台暂不支持" })
-}
-
-// 解析 sips 输出里的某个像素维度
-#[cfg(target_os = "macos")]
-fn parse_dim(s: &str, key: &str) -> u32 {
-    s.lines()
-        .find(|l| l.contains(key))
-        .and_then(|l| l.rsplit(':').next())
-        .and_then(|v| v.trim().parse().ok())
-        .unwrap_or(0)
 }
 
 // 跑一段 AppleScript
@@ -204,10 +191,7 @@ return out"#;
             }
         }
 
-        // 截屏:给视觉模型用。返回 base64 PNG + 图像像素尺寸(w,h)+ 点击坐标空间尺寸(cw,ch=屏幕点)。
-        "screenshot" => screenshot().await,
-
-        // 点击:传 text → 按元素名(AX,稳);传 x,y → 坐标点击(点空间,视觉定位后用)
+        // 点击:传 text → 按元素名(AX,稳);传 x,y → 坐标点击
         "computer_click" => {
             let text = args.get("text").and_then(|x| x.as_str()).unwrap_or("");
             if !text.is_empty() {
@@ -332,45 +316,6 @@ error "未找到可点击元素: " & targetText"#,
     }
 }
 
-// 截屏 → base64 PNG + 尺寸。w,h=图像像素(已缩到宽1280);cw,ch=点击坐标空间(屏幕点)。
-#[cfg(target_os = "macos")]
-async fn screenshot() -> Value {
-    let path = std::env::temp_dir().join("one-shot.png");
-    let p = path.to_string_lossy().to_string();
-    let captured = Command::new("screencapture")
-        .arg("-x").arg(&p).stdin(Stdio::null()).status().await
-        .map(|s| s.success()).unwrap_or(false);
-    if !captured {
-        return json!({ "error": "screencapture 失败(可能缺『屏幕录制』权限)" });
-    }
-    // 缩到宽 1280,省 token
-    let _ = Command::new("sips").args(["-Z", "1280", &p]).stdin(Stdio::null()).output().await;
-    let dims = Command::new("sips")
-        .args(["-g", "pixelWidth", "-g", "pixelHeight", &p]).output().await
-        .map(|o| String::from_utf8_lossy(&o.stdout).to_string()).unwrap_or_default();
-    let w = parse_dim(&dims, "pixelWidth");
-    let h = parse_dim(&dims, "pixelHeight");
-    let (cw, ch) = desktop_points().await;
-    let bytes = match tokio::fs::read(&p).await {
-        Ok(b) => b,
-        Err(e) => return json!({ "error": e.to_string() }),
-    };
-    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
-    json!({ "image": format!("data:image/png;base64,{b64}"), "w": w, "h": h, "cw": cw, "ch": ch })
-}
-
-// 桌面点尺寸(Finder desktop bounds 返回的是点,正是 enigo 点击坐标空间)
-#[cfg(target_os = "macos")]
-async fn desktop_points() -> (u32, u32) {
-    let out = osa("tell application \"Finder\" to get bounds of window of desktop").await.unwrap_or_default();
-    let nums: Vec<i64> = out.split(',').filter_map(|s| s.trim().parse().ok()).collect();
-    if nums.len() == 4 {
-        (nums[2].max(0) as u32, nums[3].max(0) as u32)
-    } else {
-        (0, 0)
-    }
-}
-
 // 坐标点击(mac=点空间/需辅助功能;win=物理像素)。enigo 跨平台。
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 fn click_at(x: i32, y: i32) -> Value {
@@ -390,7 +335,6 @@ fn click_at(x: i32, y: i32) -> Value {
 
 // ═══════════════════════ Windows 实现 ═══════════════════════
 // 与 mac 同构:外部脚本引擎从 osascript 换成 PowerShell + .NET。
-//   · 截屏      → System.Windows.Forms/Drawing 抓屏 + 缩放
 //   · 读控件    → System.Windows.Automation(UIA,即 mac AX 的对面版)
 //   · 按名点击  → UIA 找元素 → InvokePattern;无 Invoke 则取中心坐标交 enigo 点
 //   · 坐标点击/输入/按键 → 复用跨平台 enigo
@@ -402,7 +346,6 @@ pub async fn run(name: &str, args: &Value) -> Value {
             Ok(v) => json!({ "screen": v }),
             Err(e) => json!({ "error": e }),
         },
-        "screenshot" => screenshot().await,
         "computer_click" => {
             let text = args.get("text").and_then(|x| x.as_str()).unwrap_or("");
             if !text.is_empty() {
@@ -445,25 +388,6 @@ async fn ps(script: &str) -> Result<String, String> {
     } else {
         Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
     }
-}
-
-// 截屏 → base64 PNG + 尺寸。w,h=缩到宽 1280 的图像像素;cw,ch=屏幕物理像素(点击坐标空间)。
-#[cfg(target_os = "windows")]
-async fn screenshot() -> Value {
-    let path = std::env::temp_dir().join("one-shot.png");
-    let script = SHOT_PS.replace("__PATH__", &path.to_string_lossy());
-    let dims = match ps(&script).await {
-        Ok(d) => d,
-        Err(e) => return json!({ "error": format!("截屏失败: {e}") }),
-    };
-    let nums: Vec<u32> = dims.split_whitespace().filter_map(|s| s.parse().ok()).collect();
-    let (w, h, cw, ch) = if nums.len() == 4 { (nums[0], nums[1], nums[2], nums[3]) } else { (0, 0, 0, 0) };
-    let bytes = match tokio::fs::read(&path).await {
-        Ok(b) => b,
-        Err(e) => return json!({ "error": e.to_string() }),
-    };
-    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
-    json!({ "image": format!("data:image/png;base64,{b64}"), "w": w, "h": h, "cw": cw, "ch": ch })
 }
 
 // 按名点击:UIA 找到元素 → 优先 InvokePattern;没有就返回中心坐标交给 enigo 点。
@@ -597,23 +521,4 @@ try{
 }catch{
   "XY {0} {1}" -f $cx,$cy
 }
-"#;
-
-// 抓主屏 → 缩到宽 1280 → 存 PNG,末行输出 "w h cw ch"。
-#[cfg(target_os = "windows")]
-const SHOT_PS: &str = r#"
-Add-Type -AssemblyName System.Windows.Forms,System.Drawing
-$b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-$full=[System.Drawing.Bitmap]::new($b.Width,$b.Height)
-$g=[System.Drawing.Graphics]::FromImage($full)
-$g.CopyFromScreen($b.Location,[System.Drawing.Point]::Empty,$b.Size)
-$tw=[int]$b.Width; $th=[int]$b.Height
-if($b.Width -gt 1280){ $tw=1280; $th=[int]($b.Height*1280/$b.Width) }
-$small=[System.Drawing.Bitmap]::new($tw,$th)
-$g2=[System.Drawing.Graphics]::FromImage($small)
-$g2.InterpolationMode=[System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-$g2.DrawImage($full,0,0,$tw,$th)
-$small.Save('__PATH__',[System.Drawing.Imaging.ImageFormat]::Png)
-$g.Dispose(); $g2.Dispose(); $full.Dispose(); $small.Dispose()
-"{0} {1} {2} {3}" -f $tw,$th,$b.Width,$b.Height
 "#;

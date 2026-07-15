@@ -24,7 +24,6 @@ marked.setOptions({ breaks: true, gfm: true, renderer: SAFE_RENDERER });
 // 与 worker/server/system/agent/tools.js 的工具集对齐(只暴露的那几个;未知名回退原名)。
 const TOOL_LABELS = {
     sql: '数据库',
-    screenshot: '截图',
     shell: '终端命令',
     computer_screen: 'Mac 读屏',
     computer_click: 'Mac 点击',
@@ -37,7 +36,7 @@ const TOOL_LABELS = {
     android_swipe: '安卓滑动',
     android_key: '安卓按键',
     android_open_app: '安卓打开',
-    browser_cdp: '浏览器',
+    chrome_debugger: '浏览器',
 };
 
 function toolLabel(name) {

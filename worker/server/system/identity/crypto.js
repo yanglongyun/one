@@ -46,19 +46,16 @@ export async function hashPassword(password) {
     return `pbkdf2$${PBKDF2_ITERS}$${b64url(salt)}$${b64url(hash)}`;
 }
 
-// 校验口令是否匹配存储哈希。兼容历史裸 SHA-256(64 位 hex)记录,便于旧部署平滑过渡。
+// 校验口令是否匹配当前 PBKDF2 存储格式。
 export async function verifyPasswordHash(password, stored) {
     const s = String(stored || '');
-    if (s.startsWith('pbkdf2$')) {
-        const [, iterStr, saltB64, hashB64] = s.split('$');
-        const iterations = Number(iterStr) || PBKDF2_ITERS;
-        const salt = b64urlDecode(saltB64);
-        const hash = await pbkdf2(password, salt, iterations);
-        return timingSafeEqual(b64url(hash), hashB64);
-    }
-    // 兼容旧格式(裸 SHA-256 hex)
-    if (/^[0-9a-f]{64}$/i.test(s)) return timingSafeEqual(await sha256(password), s);
-    return false;
+    if (!s.startsWith('pbkdf2$')) return false;
+    const [, iterStr, saltB64, hashB64] = s.split('$');
+    const iterations = Number(iterStr);
+    if (!Number.isInteger(iterations) || !saltB64 || !hashB64) return false;
+    const salt = b64urlDecode(saltB64);
+    const hash = await pbkdf2(password, salt, iterations);
+    return timingSafeEqual(b64url(hash), hashB64);
 }
 
 async function hmac(data, secret) {

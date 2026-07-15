@@ -1,6 +1,6 @@
 {
   "name": "one-tauri",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "one 桌面壳 —— webview 开云端 worker + 内置 Rust 执行臂",

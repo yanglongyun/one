@@ -3,7 +3,8 @@ import { finishTask, startTask } from '../services/tasks.js';
 import { taskResponseFormat } from '../repositories/tasks.js';
 
 export async function runTaskTurn(hub, threadId, input, signal) {
-    await startTask(hub.db, threadId);
+    if (!await startTask(hub.db, threadId)) return { status: 'skipped', finalText: '' };
+    await hub.reconcileAlarm?.();
     const responseFormat = await taskResponseFormat(hub.db, threadId);
     const result = await runChatTurn(hub, threadId, input, signal, { touchChat: false, responseFormat });
     if (result.status === 'aborted') {
@@ -15,4 +16,3 @@ export async function runTaskTurn(hub, threadId, input, signal) {
     }
     return result;
 }
-

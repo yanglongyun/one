@@ -1,23 +1,15 @@
 package com.oneapp.one
 
 import android.content.Intent
-import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
-import android.net.Uri
 import android.graphics.Typeface
 import android.webkit.JavascriptInterface
-import android.webkit.ValueCallback
-import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -28,14 +20,6 @@ import com.oneapp.one.system.Config
  * 未配置时转到 SettingsActivity;再次打开设置走网页「本机客户端」入口(JS 桥 OneNative)或通知栏。
  */
 class MainActivity : AppCompatActivity() {
-
-    // WebView <input type=file> 的回调 + 系统选择器 launcher(不做这个,网页点附件毫无反应)
-    private var filePathCallback: ValueCallback<Array<Uri>>? = null
-    private val fileChooser: ActivityResultLauncher<String> =
-        registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-            filePathCallback?.onReceiveValue(uris?.toTypedArray() ?: emptyArray())
-            filePathCallback = null
-        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,20 +55,6 @@ class MainActivity : AppCompatActivity() {
                     if (request?.isForMainFrame == true) {
                         runOnUiThread { showError(error?.description?.toString() ?: "无法连接") }
                     }
-                }
-            }
-            webChromeClient = object : WebChromeClient() {
-                override fun onShowFileChooser(
-                    view: WebView?,
-                    callback: ValueCallback<Array<Uri>>?,
-                    params: FileChooserParams?,
-                ): Boolean {
-                    filePathCallback?.onReceiveValue(null) // 取消上一次未完成的选择
-                    filePathCallback = callback
-                    val types = params?.acceptTypes?.filter { it.isNotBlank() }
-                    val mime = types?.firstOrNull()?.takeIf { it.contains('/') } ?: "image/*"
-                    return try { fileChooser.launch(mime); true }
-                    catch (e: Exception) { filePathCallback = null; false }
                 }
             }
             loadUrl(Config.worker(this@MainActivity))

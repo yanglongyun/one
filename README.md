@@ -35,6 +35,7 @@
 cd worker && npm install && npm --prefix ui install          # 顺带装前端依赖(部署会构建 ui/)
 cp wrangler.example.jsonc wrangler.jsonc                      # 填 account_id / database_id
 npx wrangler d1 create one                                    # 把拿到的 database_id 填回去
+npx wrangler r2 bucket create one                             # 安装包下载桶
 npx wrangler d1 execute one --remote --file=schema.sql
 npx wrangler d1 execute one --remote --file=seeds/apps.sql    # 出厂小应用(可选)
 npx wrangler secret put AUTH_SECRET                           # 必填:openssl rand -hex 32
@@ -65,16 +66,15 @@ clients/     各端的「壳 + 手」:tauri/ 桌面 · android/ 安卓 · browse
 
 <br/>
 
-对 one 说「帮我做一个记账本」,它会直接写 `apps` + `codes` 两张表,生成一个纯前端应用(index.html/js/css,按版本追加、可回滚),从九宫格或 `/apps/<slug>` 进入。
+对助理说「帮我做一个记账本」,它会通过正式的小应用接口写入元信息和四个应用文件(`index.html/js/css/sql`),从九宫格或 `/apps/<slug>` 进入。
 
-应用页面里的 `window.one`(由 `/api/apps/sdk.js` 提供)有五个能力方法:
+应用页面里的 `window.one`(由 `/api/apps/sdk.js` 提供)有四个能力方法:
 
 | 方法 | 作用 |
 |---|---|
-| `one.sql(query, params?)` | 直达 D1 读写(数据表建议前缀 `app_<slug>_`) |
+| `one.sql(query, params?)` | 查询数据或读写 `app_*` 小应用表 |
 | `one.proxy(url, opts?)` | 服务端代发外部请求,免跨域 |
 | `one.llm(prompt, {system}?)` | 主模型一次性推理,返回文本 |
-| `one.vision(image, prompt?)` | 视觉模型看图(dataURL / Blob) |
 | `one.agent(prompt, opts?)` | 开一个任务走系统 agent 内核,默认等跑完返回结果 |
 
 数据库没有迁移脚本:`worker/schema.sql` 即全量真相,升级前用 `npm run db:backup` 导出备份。

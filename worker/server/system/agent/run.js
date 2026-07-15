@@ -33,6 +33,7 @@ export async function runAgent({
         if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
         let assistantText = '';
+        let reasoningText = '';
         let requestedToolCalls = null;
         let stepUsage = {};
         const modelStream = stream({
@@ -44,11 +45,16 @@ export async function runAgent({
             tools,
             responseFormat,
             signal,
+            thinkingEnabled: config.thinkingEnabled,
+            reasoningEffort: config.reasoningEffort,
+            maxOutputTokens: config.maxOutputTokens,
         });
         for await (const modelEvent of modelStream) {
             if (modelEvent.type === 'text') {
                 assistantText += modelEvent.delta;
                 await onEvent({ type: 'delta', content: modelEvent.delta });
+            } else if (modelEvent.type === 'reasoning') {
+                reasoningText += modelEvent.delta;
             } else if (modelEvent.type === 'tool_call') {
                 requestedToolCalls = modelEvent.calls;
             } else if (modelEvent.type === 'usage') {
@@ -58,7 +64,7 @@ export async function runAgent({
             }
         }
 
-        const assistant = assistantMessage(assistantText, requestedToolCalls);
+        const assistant = assistantMessage(assistantText, requestedToolCalls, reasoningText);
         workMessages.push(assistant);
         addedMessages.push(assistant);
         await onEvent({ type: 'assistant', message: assistant, usage: stepUsage });

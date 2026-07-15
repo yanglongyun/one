@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "one",
-  "version": "0.2.0",
-  "description": "one 的浏览器执行层:经 WebSocket 接入主域名,用 CDP 操控 Chrome、截图并回传结果。",
+  "version": "0.4.0",
+  "description": "one 的浏览器执行层:经 WebSocket 接入主域名,通过 chrome.debugger 操作当前活动标签页。",
   "permissions": ["debugger", "tabs", "storage", "alarms"],
   "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },

@@ -21,6 +21,7 @@ const ICONS = ['spark', 'doc', 'bolt', 'clock', 'battery'];
 
 /* ── 时间 / cron 文案 ─────────────────────────────── */
 const pad = (n) => String(n).padStart(2, '0');
+const localTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 function fmtTime(ts) {
     const t = Number(ts) || 0; if (!t) return '';
     const d = new Date(t); const now = new Date();
@@ -34,32 +35,44 @@ function fmtTime(ts) {
 const fmtHM = (ts) => { const d = new Date(Number(ts)); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 
 const WD = ['日', '一', '二', '三', '四', '五', '六'];
-function utcToLocalHM(h, m) { const d = new Date(); d.setUTCHours(h, m, 0, 0); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
-function cronText(cron) {
+function cronText(cron, timezone = '') {
     const p = String(cron || '').trim().split(/\s+/);
     if (p.length !== 5) return cron || '—';
     const [mi, ho, , , dow] = p;
     if (/^\*\/\d+$/.test(mi) && ho === '*') return `每 ${mi.slice(2)} 分钟`;
     if (mi === '0' && ho === '*') return '每小时';
     if (/^\d+$/.test(mi) && /^\d+$/.test(ho)) {
-        const hm = utcToLocalHM(+ho, +mi);
-        if (dow === '*') return `每天 ${hm}`;
-        if (/^[0-6]$/.test(dow)) return `每周${WD[+dow]} ${hm}`;
+        const hm = `${pad(+ho)}:${pad(+mi)}`;
+        const zone = timezone ? ` · ${timezone}` : '';
+        if (dow === '*') return `每天 ${hm}${zone}`;
+        if (/^[0-6]$/.test(dow)) return `每周${WD[+dow]} ${hm}${zone}`;
     }
     return cron;
 }
 function describe(s) {
     if (s.kind === 'once') return s.run_at ? `一次性 · ${fmtTime(s.run_at)}` : '一次性';
-    return cronText(s.cron);
+    return cronText(s.cron, s.timezone);
 }
 
 /* ── 触发记录:GET /api/tasks 按 origin 过滤 ─────── */
 const runs = ref([]);
-async function loadRuns() {
+const runCursor = ref('');
+const loadingRuns = ref(false);
+async function loadRuns({ append = false } = {}) {
+    if (loadingRuns.value) return;
+    loadingRuns.value = true;
     try {
-        const res = await api.get('/api/tasks');
-        runs.value = (res.tasks || []).filter((t) => t.origin === 'schedule' && String(t.origin_id) === id.value);
-    } catch { runs.value = []; }
+        const query = new URLSearchParams({ limit: '50', origin: 'schedule', origin_id: id.value });
+        if (append && runCursor.value) query.set('cursor', runCursor.value);
+        const res = await api.get(`/api/tasks?${query}`);
+        if (append) {
+            const known = new Set(runs.value.map((task) => task.id));
+            runs.value.push(...(res.tasks || []).filter((task) => !known.has(task.id)));
+        } else runs.value = res.tasks || [];
+        runCursor.value = res.nextCursor || '';
+    } catch {
+        if (!append) runs.value = [];
+    } finally { loadingRuns.value = false; }
 }
 const TASK_META = {
     pending: { label: '等待中', pill: 'pill-wait', dot: 'dot-wait' },
@@ -67,6 +80,7 @@ const TASK_META = {
     done: { label: '完成', pill: 'pill-ok', dot: 'dot-ok' },
     failed: { label: '失败', pill: 'pill-bad', dot: 'dot-bad' },
     aborted: { label: '已中止', pill: 'pill-halt', dot: 'dot-halt' },
+    cancelled: { label: '已取消', pill: 'pill-halt', dot: 'dot-halt' },
 };
 const metaOf = (t) => TASK_META[t.status] || TASK_META.pending;
 function taskTime(t) {
@@ -79,10 +93,10 @@ function taskTime(t) {
 const editing = ref(false);
 const form = ref(null);
 const CRON_PRESETS = [
-    { label: '每天早上 7:30', cron: '30 23 * * *' },
-    { label: '每天晚上 10 点', cron: '0 14 * * *' },
+    { label: '每天早上 7:30', cron: '30 7 * * *' },
+    { label: '每天晚上 10 点', cron: '0 22 * * *' },
     { label: '每小时', cron: '0 * * * *' },
-    { label: '每周一早 9 点', cron: '0 1 * * 1' },
+    { label: '每周一早 9 点', cron: '0 9 * * 1' },
 ];
 function toLocalInput(ts) {
     const d = new Date(Number(ts));
@@ -93,7 +107,8 @@ function openEdit() {
     form.value = {
         name: s.name, prompt: s.prompt,
         kind: s.kind === 'once' ? 'once' : 'cron',
-        cron: s.cron || '30 23 * * *',
+        cron: s.cron || '30 7 * * *',
+        timezone: s.timezone || localTimezone(),
         runAtLocal: s.run_at ? toLocalInput(s.run_at) : '',
     };
     editing.value = true;
@@ -105,7 +120,7 @@ async function save() {
         if (!f.runAtLocal) return;
         body.run_at = new Date(f.runAtLocal).getTime();
     }
-    else body.cron = f.cron.trim();
+    else { body.cron = f.cron.trim(); body.timezone = f.timezone || 'UTC'; }
     await schedules.save(body);
     editing.value = false;
 }
@@ -117,6 +132,7 @@ async function del() {
 }
 
 onMounted(async () => {
+    schedules.bind();
     if (!schedules.items.length) await schedules.load();
     loadRuns();
 });
@@ -157,7 +173,7 @@ onMounted(async () => {
                         <div class="sched-rows">
                             <div class="sched-row" style="border-top:0;margin-top:4px">
                                 <span class="k">类型</span>
-                                <span class="v">{{ sched.kind === 'once' ? describe(sched) : `循环 · ${cronText(sched.cron)}` }}</span>
+                                <span class="v">{{ sched.kind === 'once' ? describe(sched) : `循环 · ${cronText(sched.cron, sched.timezone)}` }}</span>
                             </div>
                         </div>
                     </div>
@@ -175,6 +191,7 @@ onMounted(async () => {
                             <span class="pill" :class="metaOf(t).pill"><i></i>{{ metaOf(t).label }}</span>
                             <span class="go"><Icon name="back" style="width:15px;height:15px" /></span>
                         </div>
+                        <button v-if="runCursor" class="btn btn-plain load-more" :disabled="loadingRuns" @click="loadRuns({ append: true })">{{ loadingRuns ? '加载中…' : '加载更多' }}</button>
                     </div>
                 </template>
             </div>
@@ -205,8 +222,9 @@ onMounted(async () => {
                         <div class="rule-chips">
                             <button v-for="p in CRON_PRESETS" :key="p.cron" class="rule-chip" :class="{ on: form.cron.trim() === p.cron }" @click="form.cron = p.cron">{{ p.label }}</button>
                         </div>
-                        <input class="input mono" style="margin-top:8px;font-size:12.5px" v-model="form.cron" placeholder="自定义 cron(UTC),如 30 23 * * *" />
-                        <div style="margin-top:6px;font-size:12px;color:var(--ink-3)">{{ cronText(form.cron) }}</div>
+                        <input class="input mono" style="margin-top:8px;font-size:12.5px" v-model="form.cron" placeholder="自定义 cron,如 30 7 * * *" />
+                        <input class="input mono" style="margin-top:8px;font-size:12.5px" v-model="form.timezone" placeholder="时区,如 Asia/Shanghai" />
+                        <div style="margin-top:6px;font-size:12px;color:var(--ink-3)">{{ cronText(form.cron, form.timezone) }}</div>
                     </div>
                     <div v-else class="field mt-3">
                         <label>执行时间</label>
@@ -242,4 +260,5 @@ onMounted(async () => {
 .task-title { font-size: 13.5px; font-weight: 700; }
 .task-time { font-size: 11.5px; color: var(--ink-3); font-weight: 500; margin-top: 3px; }
 .go { width: 15px; height: 15px; color: var(--ink-4); transform: scaleX(-1); flex-shrink: 0; }
+.load-more { align-self: center; margin-top: 2px; }
 </style>

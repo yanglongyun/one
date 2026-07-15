@@ -1,13 +1,16 @@
 export function makePending() {
     const pending = new Map();
+    const keyOf = (threadId, id) => `${threadId ?? ''}\u0000${id}`;
 
     return {
-        create(id, timeoutMs = 5 * 60 * 1000, signal) {
+        create(threadId, id, timeoutMs = 5 * 60 * 1000, signal) {
+            const key = keyOf(threadId, id);
+            if (pending.has(key)) return { id, promise: Promise.resolve({ error: '重复的工具调用 id' }) };
             const promise = new Promise((resolve) => {
                 const cleanup = () => {
                     clearTimeout(timer);
                     signal?.removeEventListener('abort', onAbort);
-                    pending.delete(id);
+                    pending.delete(key);
                 };
                 const timer = setTimeout(() => {
                     cleanup();
@@ -23,20 +26,20 @@ export function makePending() {
                     return;
                 }
                 signal?.addEventListener('abort', onAbort, { once: true });
-                pending.set(id, { resolve, timer, onAbort, signal });
+                pending.set(key, { resolve, timer, onAbort, signal });
             });
             return { id, promise };
         },
 
-        resolve(id, result) {
-            const p = pending.get(id);
+        resolve(threadId, id, result) {
+            const key = keyOf(threadId, id);
+            const p = pending.get(key);
             if (!p) return false;
             clearTimeout(p.timer);
             p.signal?.removeEventListener('abort', p.onAbort);
-            pending.delete(id);
+            pending.delete(key);
             p.resolve(result);
             return true;
         },
     };
 }
-

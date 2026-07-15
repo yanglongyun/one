@@ -1,5 +1,6 @@
 // 消息派发:web ↔ (本 DO) ↔ 执行层。WS tag 分 'web' / 'device'(桌面手) / 'browser'(浏览器插件)。
 // 设备与浏览器都是「执行层」:广播 chat.tool.calls 给它们,各自捕捉归属自己的工具。
+import { EXECUTOR_PROTOCOL_VERSION } from './protocol.js';
 
 export function makeDispatch(ctx) {
     const webSockets = () => ctx.getWebSockets('web');
@@ -8,6 +9,17 @@ export function makeDispatch(ctx) {
 
     const send = (ws, msg) => { try { ws.send(JSON.stringify(msg)); } catch { /* 已断 */ } };
     const sendOne = (list, msg) => { const ws = list[0]; if (!ws) return false; send(ws, msg); return true; };
+    const executorInfo = (ws) => {
+        let attachment = {};
+        try { attachment = ws.deserializeAttachment() || {}; } catch { /* ignore */ }
+        return {
+            name: attachment.name || '设备',
+            kind: attachment.kind || 'device',
+            caps: Array.isArray(attachment.caps) ? attachment.caps : [],
+            protocolVersion: attachment.protocolVersion,
+            clientVersion: attachment.clientVersion || '',
+        };
+    };
 
     return {
         // 推给所有网页端
@@ -23,25 +35,21 @@ export function makeDispatch(ctx) {
         // 所有执行层连接(设备 + 浏览器),用于连接面板列清单。过滤已断开的僵尸连接。
         executorSockets() {
             return [...deviceSockets(), ...browserSockets()].filter((ws) => {
-                try { return ws.readyState === 1; } catch { return false; }
+                try {
+                    return ws.readyState === 1 && executorInfo(ws).protocolVersion === EXECUTOR_PROTOCOL_VERSION;
+                } catch { return false; }
             });
         },
 
         // 在线执行层的元信息清单 [{name, kind, caps}]
         executors() {
-            return this.executorSockets().map((ws) => {
-                let a = {};
-                try { a = ws.deserializeAttachment() || {}; } catch { /* ignore */ }
-                return { name: a.name || '设备', kind: a.kind || 'device', caps: a.caps || [] };
-            });
+            return this.executorSockets().map(executorInfo);
         },
 
         // 定向投给某台执行层(按唯一 name)。找不到返回 false。
         toExecutor(name, msg) {
             for (const ws of this.executorSockets()) {
-                let a = {};
-                try { a = ws.deserializeAttachment() || {}; } catch { /* ignore */ }
-                if (a.name === name) { send(ws, msg); return true; }
+                if (executorInfo(ws).name === name) { send(ws, msg); return true; }
             }
             return false;
         },
@@ -52,9 +60,7 @@ export function makeDispatch(ctx) {
             let n = 0;
             for (const ws of this.executorSockets()) {
                 if (ws === self) continue;
-                let a = {};
-                try { a = ws.deserializeAttachment() || {}; } catch { /* ignore */ }
-                if (a.name === name) {
+                if (executorInfo(ws).name === name) {
                     try { ws.close(4001, 'replaced by newer connection'); } catch { /* ignore */ }
                     n++;
                 }
@@ -62,7 +68,5 @@ export function makeDispatch(ctx) {
             return n;
         },
 
-        hasDevice() { return deviceSockets().length > 0; },
-        hasBrowser() { return browserSockets().length > 0; },
     };
 }

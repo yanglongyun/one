@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTasksStore } from './store';
 import { statusOf, originOf } from './meta';
@@ -28,29 +28,12 @@ const TABS = [
     { value: 'failed', label: '失败' },
 ];
 
-// 胶囊上的计数:只有「全部」视图握有完整列表,能算出各状态的数;
-// 切到子筛选后沿用上一次全量算出的缓存,避免为了数字多打一轮接口。
-const counts = ref(null);
-const countOf = (v) => {
-    if (tasks.statusFilter === '' ) {
-        if (!v) return tasks.items.length;
-        return tasks.items.filter((t) => t.status === v).length;
-    }
-    if (tasks.statusFilter === v) return tasks.items.length;
-    return counts.value?.[v || 'all'];
-};
-async function pick(value) {
-    if (tasks.statusFilter === '') {
-        const c = { all: tasks.items.length };
-        for (const t of tasks.items) c[t.status] = (c[t.status] || 0) + 1;
-        counts.value = c;
-    }
-    await tasks.load(value);
-}
+const countOf = (value) => tasks.counts[value || 'all'];
+const pick = (value) => tasks.load(value);
 
 async function remove(t, event) {
     event.stopPropagation();
-    if (!confirm(`删除任务「${t.title || '未命名'}」?`)) return;
+    if (!confirm(`取消任务「${t.title || '未命名'}」? 执行记录会保留。`)) return;
     await tasks.remove(t.id);
 }
 
@@ -106,9 +89,10 @@ onMounted(() => { tasks.bind(); tasks.load(); });
                                 <span>{{ fmtTime(t.created_at) }}<template v-if="t.finished_at"> → {{ fmtTime(t.finished_at) }}</template></span>
                             </div>
                         </span>
-                        <button class="task-del" title="删除" @click="remove(t, $event)"><Icon name="trash" /></button>
+                        <button v-if="t.status === 'pending' || t.status === 'running'" class="task-del" title="取消任务" @click="remove(t, $event)"><Icon name="trash" /></button>
                     </div>
                 </div>
+                <button v-if="tasks.nextCursor" class="btn btn-plain load-more" :disabled="tasks.loading" @click="tasks.loadMore">{{ tasks.loading ? '加载中…' : '加载更多' }}</button>
             </div>
         </main>
 
@@ -130,6 +114,7 @@ onMounted(() => { tasks.bind(); tasks.load(); });
 .card:hover .task-del { opacity: 1; }
 .task-del:hover { background: var(--bad-soft); color: var(--bad); }
 .tasks-list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.load-more { display: flex; margin: 14px auto 0; }
 .origin-badge { display: inline-flex; align-items: center; gap: 4px; }
 .origin-badge svg { width: 12px; height: 12px; }
 .origin-badge a { color: var(--candy-deep); text-decoration: none; font-weight: 600; }

@@ -2,6 +2,13 @@
 // 来源优先级:环境变量 WORKER_URL / ONE_PASSWORD / ONE_NAME > data_dir/config.json。
 use serde_json::Value;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static REVISION: AtomicU64 = AtomicU64::new(0);
+
+pub fn revision() -> u64 {
+    REVISION.load(Ordering::Relaxed)
+}
 
 pub struct Config {
     pub worker_url: String,
@@ -46,7 +53,7 @@ pub fn load() -> Config {
     }
 }
 
-// 原生设置页写入(主域名 + 密码 + 设备名)。执行臂每轮重读,几秒内自动连上。
+// 原生设置页写入(主域名 + 密码 + 设备名),并通知执行臂立即重连。
 pub fn save(worker_url: &str, password: &str, name: &str) {
     if let Some(dir) = data_dir() {
         let autostart = load().autostart; // 保留已有的 autostart 开关
@@ -57,6 +64,7 @@ pub fn save(worker_url: &str, password: &str, name: &str) {
             "autostart": autostart,
         });
         let _ = std::fs::write(dir.join("config.json"), serde_json::to_string_pretty(&v).unwrap_or_default());
+        REVISION.fetch_add(1, Ordering::Relaxed);
     }
 }
 

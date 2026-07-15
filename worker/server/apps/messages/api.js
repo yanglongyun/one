@@ -9,6 +9,7 @@ export default async function messagesApi(request, ctx) {
     const limit = Math.min(Number(url.searchParams.get('limit')) || 50, 200);
     const chatId = String(url.searchParams.get('chat') || '').trim();
     if (!chatId) return Response.json({ error: 'chat required' }, { status: 400 });
-    const rows = await repo.messages(ctx.db, { chatId, beforeId, limit });
-    return Response.json({ messages: rows, hasMore: rows.length === limit });
+    const rows = await repo.messages(ctx.db, { chatId, beforeId, limit: limit + 1 });
+    const hasMore = rows.length > limit;
+    return Response.json({ messages: hasMore ? rows.slice(1) : rows, hasMore });
 }

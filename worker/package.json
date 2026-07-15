@@ -1,11 +1,12 @@
 {
     "name": "one-worker",
-    "version": "0.2.0",
+    "version": "0.4.0",
     "private": true,
     "type": "module",
     "scripts": {
         "build:ui": "npm --prefix ui run build",
         "seed:build": "node seeds/build.mjs",
+        "test": "node --test test/*.test.js",
         "dev": "wrangler dev --port 9506",
         "predeploy": "npm run build:ui",
         "deploy": "wrangler deploy",

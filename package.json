@@ -1,6 +1,6 @@
 {
   "name": "one",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "云核 AI 助手 —— worker(云)+ clients(壳和手)",

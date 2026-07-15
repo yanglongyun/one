@@ -10,7 +10,7 @@ export async function executeDeviceTool(name, args, { hub, threadId, signal } = 
     });
     if (!sent) return { error: `设备「${target.name}」已离线或发送失败` };
 
-    return hub.awaitResult(__toolCallId, signal);
+    return hub.awaitResult(threadId, __toolCallId, signal);
 }
 
 export function pickDevice(executors, toolName, explicit) {

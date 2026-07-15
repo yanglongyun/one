@@ -1,21 +1,29 @@
-export async function executeCloudTool(name, args, { hub } = {}) {
-    if (name === 'fetch') return fetchTool(args);
+import { boundedFetch } from '../net/bounded-fetch.js';
+import { executeSql } from '../services/sql.js';
+import { executeManagement } from '../services/manage.js';
+
+export async function executeCloudTool(name, args, { hub, signal } = {}) {
+    if (name === 'fetch') return fetchTool(args, signal);
     if (name === 'sql') return sqlTool(args, hub);
+    if (name === 'one_manage') return manageTool(args, hub);
     return { error: `未知云端工具: ${name}` };
 }
 
-async function fetchTool(args) {
+async function manageTool(args, hub) {
+    try { return await executeManagement(args, hub); }
+    catch (err) { return { error: err.message || String(err) }; }
+}
+
+async function fetchTool(args, signal) {
     const url = String(args.url || '').trim();
     if (!/^https?:\/\//i.test(url)) return { error: 'url 需以 http(s):// 开头' };
     try {
-        const res = await globalThis.fetch(url, {
+        const { response: res, body, truncated } = await boundedFetch(url, {
             method: String(args.method || 'GET').toUpperCase(),
             headers: args.headers && typeof args.headers === 'object' ? args.headers : undefined,
             body: args.body != null ? String(args.body) : undefined,
-        });
-        let body = await res.text();
-        const truncated = body.length > 200000;
-        if (truncated) body = body.slice(0, 200000);
+            signal,
+        }, { timeoutMs: 15000, maxResponseBytes: 200000, maxRequestBytes: 200000, maxRedirects: 3 });
         return { status: res.status, contentType: res.headers.get('content-type') || '', body, truncated };
     } catch (err) {
         return { error: err.message || String(err) };
@@ -23,18 +31,6 @@ async function fetchTool(args) {
 }
 
 async function sqlTool(args, hub) {
-    const query = String(args.query || '').trim();
-    if (!query) return { error: '空查询' };
-    const params = Array.isArray(args.params) ? args.params : [];
-    try {
-        const stmt = hub.db.prepare(query).bind(...params);
-        if (/^(select|with|pragma)\b/i.test(query)) {
-            const { results } = await stmt.all();
-            return { rows: results, count: results.length };
-        }
-        const r = await stmt.run();
-        return { ok: true, changes: r.meta?.changes ?? 0, lastRowId: Number(r.meta?.last_row_id) || 0 };
-    } catch (err) {
-        return { error: err.message || String(err) };
-    }
+    try { return await executeSql(hub.db, args.query, args.params); }
+    catch (err) { return { error: err.message || String(err) }; }
 }

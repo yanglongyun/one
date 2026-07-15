@@ -13,9 +13,13 @@ import com.oneapp.one.system.Connection
 /**
  * 手(前台服务外壳):维持与云端 worker 的连接。连接/重连/派发逻辑在 system.Connection,
  * 工具执行在 apps.Control —— 与 worker / 桌面 / 插件同一套 system + apps 心智模型。
- * 窗口/进程在,手就在;连接用「主域名 + token」(见 system.Config)。
+ * 窗口/进程在,手就在;连接用「主域名 + 密码」(见 system.Config)。
  */
 class DeviceService : Service() {
+
+    companion object {
+        const val ACTION_RECONNECT = "com.oneapp.one.RECONNECT"
+    }
 
     private var conn: Connection? = null
 
@@ -23,6 +27,10 @@ class DeviceService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(1, buildNotification())
+        if (intent?.action == ACTION_RECONNECT) {
+            conn?.stop()
+            conn = null
+        }
         if (conn == null) {
             conn = Connection(applicationContext)
             conn?.start()

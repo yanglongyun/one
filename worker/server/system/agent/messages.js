@@ -1,5 +1,6 @@
-export function assistantMessage(text, calls) {
+export function assistantMessage(text, calls, reasoning = '') {
     const message = { role: 'assistant', content: text || '' };
+    if (reasoning) message.reasoning_content = reasoning;
     if (calls?.length) {
         message.tool_calls = calls.map((c) => ({
             id: c.id,
@@ -17,4 +18,3 @@ export function toolMessage(call, result) {
         content: JSON.stringify(result),
     };
 }
-

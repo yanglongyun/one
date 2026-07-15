@@ -6,8 +6,8 @@ import { api } from '@/system/api';
 // config 是安全视图:不含 apiKey 明文,只有 hasKey + keyPreview。
 export const useModelStore = defineStore('model', () => {
     const config = ref({
-        apiUrl: '', model: '', system: '', recentRawMessages: 100,
-        compressThreshold: 12000, toolResultMaxChars: 12000, toolMaxRounds: 50,
+        apiUrl: '', model: '', recentRawMessages: 100,
+        compressThreshold: 64000, toolResultMaxChars: 12000, toolMaxRounds: 50,
         hasKey: false, keyPreview: '',
     });
     const loaded = ref(false);

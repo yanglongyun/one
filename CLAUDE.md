@@ -18,7 +18,7 @@ worker/              云核(部署到 Cloudflare)
 clients/
   tauri/             桌面(Rust + WebView),含电脑控制「手」
   android/           安卓(Kotlin,WebView + 无障碍「手」)
-  browser/           Chrome MV3 扩展(CDP「手」)
+  browser/           Chrome MV3 扩展(chrome.debugger「手」)
 ```
 
 ## 帮用户部署(最常见任务)
@@ -32,6 +32,7 @@ cd worker && npm install && npm --prefix ui install  # 顺带装前端依赖(部
 cp wrangler.example.jsonc wrangler.jsonc             # 待填 account_id / database_id
 
 npx wrangler d1 create one                           # 把输出的 database_id 连同 account_id 填进 wrangler.jsonc
+npx wrangler r2 bucket create one                    # 创建安装包下载桶
 npx wrangler d1 execute one --remote --file=schema.sql
 npx wrangler d1 execute one --remote --file=seeds/apps.sql   # 出厂小应用(可选)
 
@@ -47,11 +48,11 @@ npm run deploy
 
 ## 模型配置(部署后在网页「设置」里填)
 
-- **主模型**:API 地址 + API Key + 模型名 + 认证方式。`authMode` = `bearer`(OpenAI 系)或 `x-api-key`(Claude 系)。任何 OpenAI 兼容 / Claude 端点都能接 —— OpenAI、Claude、Gemini、DeepSeek、通义千问、Kimi、智谱 GLM 等,coding plan 端点也行。
-- **视觉模型**:可单独配一个(看图、读屏用),也可以勾选让主模型兼任视觉。
+- **主模型**:填写 OpenAI chat/completions 协议的完整地址、API Key、模型名和认证头。`authMode` 只决定使用 `Authorization: Bearer` 还是 `x-api-key`；上游必须返回 OpenAI 格式的流式响应。
 
 ## 改代码的硬约定(别踩)
 
+- **不写兼容层**:协议、字段或工具名变更时同步修改所有生产端并发布新版本；只保留唯一现行实现。禁止旧名称别名、双路径、历史字段兜底和按版本分支，旧客户端直接淘汰并要求升级。
 - **机密绝不入库**:`wrangler.jsonc` / `.dev.vars` / `config.json` / 数据库备份 / 任何 key 都已 gitignore,别绕过。`AUTH_SECRET` 只走 `wrangler secret`。
 - **数据库无迁移**:`worker/schema.sql` 是唯一真相,改表结构就直接改它,不写迁移脚本。升级前用 `npm run db:backup` 导出备份。
 - **种子小应用是生成物**:改 `worker/seeds/<slug>/` 源码后,必须 `npm run seed:build` 重新生成 `seeds/apps.sql`,别手改 apps.sql。

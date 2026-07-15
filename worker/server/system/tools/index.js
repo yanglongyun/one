@@ -1,6 +1,5 @@
 import { executeCloudTool } from './cloud.js';
 import { executeDeviceTool } from './device.js';
-import { executeScreenshotTool } from './screenshot.js';
 import { toolMessage } from '../agent/messages.js';
 
 export async function runToolCalls(calls, { hub, threadId, signal, onResult = () => {} } = {}) {
@@ -17,7 +16,6 @@ export async function runToolCalls(calls, { hub, threadId, signal, onResult = ()
 
 async function executeTool(call, ctx) {
     try {
-        if (call.name === 'screenshot') return await executeScreenshotTool(call.args || {}, ctx);
         if (isCloudTool(call.name)) return await executeCloudTool(call.name, call.args || {}, ctx);
         return await executeDeviceTool(call.name, { ...(call.args || {}), __toolCallId: call.id }, ctx);
     } catch (err) {
@@ -26,5 +24,5 @@ async function executeTool(call, ctx) {
 }
 
 export function isCloudTool(name) {
-    return ['fetch', 'sql'].includes(name);
+    return ['fetch', 'sql', 'one_manage'].includes(name);
 }

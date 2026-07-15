@@ -1,14 +1,7 @@
-export async function enabledSchedules(db) {
-    const { results } = await db.prepare('SELECT * FROM schedules WHERE enabled = 1').all();
+export async function dueSchedules(db, now) {
+    const { results } = await db.prepare(`
+      SELECT * FROM schedules WHERE enabled = 1 AND next_run_at IS NOT NULL AND next_run_at <= ?
+      ORDER BY next_run_at ASC LIMIT 20
+    `).bind(now).all();
     return results;
 }
-
-export async function markScheduleRun(db, id, now, minute) {
-    await db.prepare('UPDATE schedules SET last_run_at = ?, last_run_minute = ? WHERE id = ?')
-        .bind(now, minute, id).run();
-}
-
-export async function disableSchedule(db, id) {
-    await db.prepare('UPDATE schedules SET enabled = 0 WHERE id = ?').bind(id).run();
-}
-

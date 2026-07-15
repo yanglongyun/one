@@ -6,11 +6,10 @@ import android.os.Build
 import com.oneapp.one.HandAccessibilityService
 import org.json.JSONObject
 
-// 安卓控制 app:安卓控制工具以 android_* 前缀;截图能力统一叫 screenshot。
+// 安卓控制 app:安卓控制工具统一使用 android_* 前缀。
 // 经无障碍服务(HandAccessibilityService)出手。
-// ⚠️ 这些工具当前在云端 tools.js 里**暂未启用**(控制类先不搞);脚手架先按正确命名待命。
 object Control {
-    fun owns(name: String): Boolean = name.startsWith("android_") || name == "screenshot"
+    fun owns(name: String): Boolean = name.startsWith("android_")
 
     fun run(ctx: Context, name: String, args: JSONObject): JSONObject {
         val hand = HandAccessibilityService.instance
@@ -19,12 +18,6 @@ object Control {
             "android_screen" -> {
                 hand ?: return notReady()
                 JSONObject().put("elements", hand.dumpScreen())
-            }
-
-            // 截屏(给视觉模型用)
-            "screenshot" -> {
-                hand ?: return notReady()
-                hand.screenshot()
             }
 
             // 点击:优先按文字(稳),否则按坐标

@@ -9,9 +9,11 @@
  *        npx wrangler d1 create one
  *        把输出的 database_id 填到下面 d1_databases[0].database_id
  *        建表: npx wrangler d1 execute one --remote --file=schema.sql
- *   3) 鉴权密钥(JWT 签名):
+ *   3) R2 安装包下载桶:
+ *        npx wrangler r2 bucket create one
+ *   4) 鉴权密钥(JWT 签名):
  *        npx wrangler secret put AUTH_SECRET   # 如 openssl rand -hex 32
- *   4) (可选)绑自己的域名 — 先把域名托管进 Cloudflare,再填 routes;
+ *   5) (可选)绑自己的域名 — 先把域名托管进 Cloudflare,再填 routes;
  *        不绑就把整个 "routes" 段删掉,Worker 会自动给一个
  *        one.<your-subdomain>.workers.dev 的测试地址。
  *
@@ -50,14 +52,15 @@
 			"database_id": "<YOUR_D1_DATABASE_ID>"
 		}
 	],
+	"r2_buckets": [
+		{
+			"binding": "DOWNLOADS",
+			"bucket_name": "one"
+		}
+	],
 	"observability": {
 		"enabled": true
 	},
-	// 日程(定时任务)靠这个:每分钟触发一次 scheduled handler,扫 schedules 表到期项。
-	"triggers": {
-		"crons": ["* * * * *"]
-	},
-
 	// 不绑自定义域名就把整个 "routes" 段删掉,Cloudflare 会自动给
 	// one.<your-subdomain>.workers.dev 的测试地址。
 	// 要绑自己的域名(如 one.example.com):

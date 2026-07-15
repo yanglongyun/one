@@ -1,7 +1,16 @@
-export async function insertMessage(db, threadId, message, usage = {}) {
-    await db.prepare(
-        'INSERT INTO messages (thread_id, role, body, usage, created_at) VALUES (?, ?, ?, ?, ?)',
-    ).bind(threadId, message.role, JSON.stringify(message), JSON.stringify(usage || {}), Date.now()).run();
+export async function insertMessage(db, threadId, message, usage = {}, options = {}) {
+    if (options.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    const requireChat = Boolean(options.requireChat && threadId);
+    const result = await db.prepare(`
+      INSERT OR IGNORE INTO messages (thread_id, role, body, usage, client_id, created_at)
+      SELECT ?, ?, ?, ?, ?, ?
+      WHERE ? = 0 OR EXISTS (SELECT 1 FROM chats WHERE id = ?)
+    `).bind(
+        threadId, message.role, JSON.stringify(message), JSON.stringify(usage || {}),
+        options.clientId || null, Date.now(), requireChat ? 1 : 0, threadId,
+    ).run();
+    if (options.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    return Number(result.meta?.changes || 0);
 }
 
 export async function recentMessagesAfterCompaction(db, threadId, afterId, limit) {
@@ -25,4 +34,3 @@ export async function latestUsage(db, threadId) {
         "SELECT usage FROM messages WHERE thread_id IS ? AND usage != '{}' ORDER BY id DESC LIMIT 1",
     ).bind(threadId).first();
 }
-

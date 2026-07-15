@@ -1,6 +1,7 @@
 package com.oneapp.one.system
 
 import android.content.Context
+import com.oneapp.one.BuildConfig
 import okhttp3.*
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
@@ -32,28 +33,33 @@ class Connection(private val ctx: Context) {
         if (!Config.configured(ctx)) { retry(); return } // 没填 token,等
         val req = Request.Builder().url(Config.wsUrl(ctx)).build()
         socket = client.newWebSocket(req, object : WebSocketListener() {
-            override fun onOpen(ws: WebSocket, response: Response) {
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                if (stopped) { webSocket.close(1000, null); return }
                 online = true
                 // 自报身份:唯一设备名(寻址键)+ 类型 + 能力(暂无网页视图/agent 工具)
                 val caps = org.json.JSONArray()
                     .put("android_screen").put("android_tap").put("android_type")
                     .put("android_swipe").put("android_key").put("android_open_app")
-                    .put("screenshot")
-                ws.send(
+                webSocket.send(
                     JSONObject()
                         .put("type", "hello")
+                        .put("protocolVersion", 1)
+                        .put("clientVersion", BuildConfig.VERSION_NAME)
                         .put("kind", "android")
                         .put("name", Config.name(ctx))
                         .put("caps", caps)
                         .toString()
                 )
             }
-            override fun onMessage(ws: WebSocket, text: String) {
+            override fun onMessage(webSocket: WebSocket, text: String) {
                 val msg = try { JSONObject(text) } catch (_: Exception) { return }
-                Dispatch.handle(ctx, msg) { reply -> ws.send(reply.toString()) }
+                Dispatch.handle(ctx, msg) { reply -> webSocket.send(reply.toString()) }
             }
-            override fun onClosed(ws: WebSocket, code: Int, reason: String) { online = false; retry() }
-            override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) { online = false; retry() }
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                online = false
+                if (code == 4002) stopped = true else retry()
+            }
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) { online = false; retry() }
         })
     }
 

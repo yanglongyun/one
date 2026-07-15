@@ -35,7 +35,7 @@ function serializeMessagesForSummary(messageRows) {
 }
 
 export async function maybeCompact(hub, threadId, config, emit = () => {}) {
-    const compactThreshold = Number(config.compressThreshold) || 12000;
+    const compactThreshold = Number(config.compressThreshold) || 64000;
     const latestUsageRow = await latestUsage(hub.db, threadId);
     const latestTokenCount = totalTokens(parseMessageBody(latestUsageRow?.usage));
     if (!latestTokenCount || latestTokenCount < compactThreshold) return false;
@@ -65,6 +65,9 @@ export async function maybeCompact(hub, threadId, config, emit = () => {}) {
             tools: [],
             responseFormat: undefined,
             signal: undefined,
+            thinkingEnabled: config.thinkingEnabled,
+            reasoningEffort: config.reasoningEffort,
+            maxOutputTokens: config.maxOutputTokens,
         });
         for await (const modelEvent of modelStream) {
             if (modelEvent.type === 'text') summary += modelEvent.delta;

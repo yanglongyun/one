@@ -65,10 +65,8 @@ fn urlencode(s: &str) -> String {
     out
 }
 
-// 设置页保存(主域名 + 密码 + 设备名)。执行臂每轮重读,几秒内自动连上。
-// 保存后让主窗口(重新)加载新的 worker 地址,设置窗口自身不跳转。
 // 第 1 步保存凭证(主域名 + 密码 + 设备名):只持久化,不跳转。
-// 执行臂每轮重读 config,几秒内自动连上;进入云端由第 2 步「进入 one」显式触发。
+// 保存会中断当前设备通道并按新配置重连;进入云端由第 2 步「进入 one」显式触发。
 #[tauri::command]
 fn save_creds(worker: String, password: String, name: String) {
     system::config::save(&worker, &password, &name);
@@ -82,14 +80,7 @@ fn enter(app: AppHandle) {
         return;
     }
     if let Ok(url) = tauri::Url::parse(&worker_login_url(&c.worker_url, &c.password)) {
-        // 优先主窗口;找不到就退到任意非设置窗口,避免 label 变动时静默失效
-        let target = app.get_webview_window("main").or_else(|| {
-            app.webview_windows()
-                .into_iter()
-                .find(|(label, _)| label != "settings")
-                .map(|(_, w)| w)
-        });
-        if let Some(w) = target {
+        if let Some(w) = app.get_webview_window("main") {
             let _ = w.navigate(url);
             let _ = w.show();
         }
@@ -127,7 +118,7 @@ fn open_settings(app: AppHandle) {
     show_settings_window(&app);
 }
 
-// mac 权限检测:辅助功能(AXIsProcessTrusted)+ 屏幕录制(CGPreflightScreenCaptureAccess)。
+// mac 权限检测:辅助功能(AXIsProcessTrusted)。
 // 非 macOS 返回 supported:false,前端据此隐藏权限区。
 #[tauri::command]
 fn mac_permissions() -> serde_json::Value {
@@ -137,12 +128,8 @@ fn mac_permissions() -> serde_json::Value {
         extern "C" {
             fn AXIsProcessTrusted() -> u8;
         }
-        #[link(name = "CoreGraphics", kind = "framework")]
-        extern "C" {
-            fn CGPreflightScreenCaptureAccess() -> u8;
-        }
-        let (ax, screen) = unsafe { (AXIsProcessTrusted() != 0, CGPreflightScreenCaptureAccess() != 0) };
-        serde_json::json!({ "supported": true, "accessibility": ax, "screenRecording": screen })
+        let ax = unsafe { AXIsProcessTrusted() != 0 };
+        serde_json::json!({ "supported": true, "accessibility": ax })
     }
     #[cfg(not(target_os = "macos"))]
     {
@@ -150,16 +137,13 @@ fn mac_permissions() -> serde_json::Value {
     }
 }
 
-// 打开系统设置对应隐私页(macOS)。pane: "accessibility" | "screen"。
+// 打开系统设置的辅助功能隐私页(macOS)。
 #[tauri::command]
 #[allow(unused_variables)]
-fn open_privacy_settings(pane: String) {
+fn open_privacy_settings() {
     #[cfg(target_os = "macos")]
     {
-        let url = match pane.as_str() {
-            "screen" => "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture",
-            _ => "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
-        };
+        let url = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility";
         let _ = std::process::Command::new("open").arg(url).spawn();
     }
 }

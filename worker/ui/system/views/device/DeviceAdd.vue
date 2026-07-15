@@ -1,16 +1,28 @@
 <script setup>
 // 添加设备(demo device-add.html 的 Vue 移植)。服务地址显示当前 origin,复制按钮真复制。
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
+import { api } from '@/system/api';
 import TopBar from '@/system/components/TopBar.vue';
 import Icon from '@/system/components/Icon.vue';
 
 const origin = window.location.origin;
 
-const PLATS = [
-    { icon: 'laptop', name: '桌面(macOS)', sub: '终端、屏幕操控、文件、状态', btn: '下载 .dmg' },
-    { icon: 'phone', name: '安卓', sub: '屏幕操控、截屏理解', btn: '下载 .apk' },
-    { icon: 'puzzle', name: '浏览器', sub: '操控网页、抓取内容', btn: '安装扩展' },
-];
+const platforms = ref([
+    { platform: 'macos', icon: 'laptop', name: '桌面(macOS)', sub: '终端、屏幕操控、文件、状态', btn: '下载 .dmg' },
+    { platform: 'windows', icon: 'laptop', name: '桌面(Windows)', sub: '终端、屏幕操控、文件、状态', btn: '下载 .exe' },
+    { platform: 'android', icon: 'phone', name: '安卓', sub: '语义读屏、点击、输入、状态', btn: '下载 .apk' },
+    { platform: 'browser', icon: 'puzzle', name: '浏览器', sub: '操控网页、抓取内容', btn: '下载扩展' },
+]);
+
+onMounted(async () => {
+    try {
+        const manifest = await api.get('/api/downloads');
+        const releases = new Map((manifest.releases || []).map((release) => [release.platform, release]));
+        platforms.value = platforms.value.map((platform) => ({ ...platform, ...releases.get(platform.platform) }));
+    } catch {
+        platforms.value = platforms.value.map((platform) => ({ ...platform, available: false }));
+    }
+});
 
 const copied = ref(false);
 async function copyOrigin() {
@@ -37,13 +49,14 @@ async function copyOrigin() {
                     <span class="step-no">1</span>
                     <div class="card step-card">
                         <div class="step-title">在要连接的设备上安装 one</div>
-                        <div v-for="p in PLATS" :key="p.name" class="plat">
+                        <div v-for="p in platforms" :key="p.platform" class="plat">
                             <span class="plat-ico"><Icon :name="p.icon" style="width:17px;height:17px" /></span>
                             <span class="grow">
                                 <div class="plat-name">{{ p.name }}</div>
                                 <div class="plat-sub">{{ p.sub }}</div>
                             </span>
-                            <button class="btn btn-plain">{{ p.btn }}</button>
+                            <a v-if="p.available" class="btn btn-plain" :href="p.url" download>{{ p.btn }}</a>
+                            <span v-else class="not-ready">即将提供</span>
                         </div>
                     </div>
                 </div>
@@ -95,6 +108,7 @@ async function copyOrigin() {
 .plat-name { font-size: 13px; font-weight: 700; }
 .plat-sub { font-size: 11.5px; color: var(--ink-3); font-weight: 500; margin-top: 1px; }
 .plat .btn { margin-left: auto; height: 30px; padding: 0 13px; font-size: 12px; }
+.not-ready { margin-left: auto; color: var(--ink-4); font-size: 12px; font-weight: 700; }
 
 .conn { display: flex; align-items: center; gap: 8px; margin-top: 9px;
     background: var(--code); border-radius: 12px; padding: 10px 13px; }

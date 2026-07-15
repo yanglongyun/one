@@ -11,8 +11,7 @@
 //   DO → web+设备: { type:'chat.tool.calls', threadId, calls } 各端执行层自捕获归属自己的工具
 //   设备 → DO:   { type:'chat.tool.result', threadId, id, result } 按 id 兑现 + 转发给 web
 //
-// spawnTask:开一个新 task 并立即跑第一轮,不阻塞发起方。多路来源共用这一个入口:
-//   app bridge、cron 扫描(日程/目标建)。
+// spawnTask:开一个新 task 并立即跑第一轮,不阻塞发起方。应用、日程、目标共用这一个入口。
 import { DurableObject } from 'cloudflare:workers';
 import { makeDispatch } from './dispatch.js';
 import { makePending } from './pending.js';
@@ -21,11 +20,11 @@ import { runTaskTurn } from '../sessions/task.js';
 import { createTask } from '../services/tasks.js';
 import { runDueSchedules } from '../services/schedules.js';
 import { runDueGoals } from '../services/goals.js';
+import { recoverTasks } from '../services/tasks.js';
+import { EXECUTOR_PROTOCOL_VERSION, executorHello } from './protocol.js';
 import { verify, verifyPassword } from '../identity/service.js';
 import * as deviceRepo from '../repositories/identity.js';
 
-// extends DurableObject:开 RPC——server/index.js 的 scheduled(日程扫描)
-// 都靠 stub.spawnTask() / stub.checkSchedules() 直接调方法,不绕 fetch()。
 export class OneHub extends DurableObject {
     constructor(ctx, env) {
         super(ctx, env);
@@ -34,7 +33,11 @@ export class OneHub extends DurableObject {
         this.db = env.DB;
         this.dispatch = makeDispatch(ctx);
         this.pending = makePending();
-        this.aborters = new Map(); // threadId(null=主对话) → AbortController(进行中的 turn,供中断)
+        this.turns = new Map(); // threadId(null=主对话) → { controller, promise }
+        this.ctx.blockConcurrencyWhile(async () => {
+            await recoverTasks(this.hub(), (id) => this.turns.has(id));
+            await this.reconcileAlarm();
+        });
     }
 
     async fetch(request) {
@@ -59,7 +62,7 @@ export class OneHub extends DurableObject {
         const { 0: client, 1: server } = new WebSocketPair();
         this.ctx.acceptWebSocket(server, [tag]);
         if (tag === 'device') await deviceRepo.touch(this.db, Date.now()).catch(() => {});
-        this.broadcastPresence();
+        if (tag === 'web') this.broadcastPresence();
         return new Response(null, { status: 101, webSocket: client });
     }
 
@@ -77,10 +80,10 @@ export class OneHub extends DurableObject {
     async fromWeb(msg) {
         if (msg.type === 'chat.input') {
             const threadId = msg.threadId || null;
-            return this.startChatTurn(threadId, { text: msg.text, images: msg.images });
+            return this.startChatTurn(threadId, { text: msg.text, clientId: msg.clientId });
         }
         if (msg.type === 'chat.abort') {
-            this.aborters.get(msg.threadId || null)?.abort();
+            await this.stopThread(msg.threadId || null, '用户已终止');
             return;
         }
         // 设备功能(files/status…)定向投给 msg.to 指定的那台设备;无 to 兜底给首台。
@@ -92,47 +95,78 @@ export class OneHub extends DurableObject {
     fromExecutor(ws, msg) {
         // 自报身份(类型 + 名字)→ 记到这条连接,刷新连接面板
         if (msg.type === 'hello') {
-            const name = String(msg.name || '设备').trim() || '设备';
+            const channel = (this.ctx.getTags(ws) || []).includes('browser') ? 'browser' : 'device';
+            const hello = executorHello(msg, channel);
+            if (!hello) {
+                try { ws.close(4002, 'client upgrade required'); } catch { /* 已断 */ }
+                return;
+            }
             // 同名旧连接(多为闪断遗留的休眠僵尸)→ 踢掉,本连接接管(后到者胜),根治重名死循环
-            this.dispatch.evictName(name, ws);
-            try {
-                ws.serializeAttachment({
-                    name,
-                    kind: msg.kind || 'device',
-                    caps: Array.isArray(msg.caps) ? msg.caps : [],
-                });
-            } catch { /* ignore */ }
+            this.dispatch.evictName(hello.name, ws);
+            try { ws.serializeAttachment(hello); } catch { /* ignore */ }
             this.broadcastPresence();
             return;
         }
-        // 工具结果:按 id 兑现 loop 的等待(loop 统一把结果发给 web 显示,这里不重复转发)
-        if (msg.type === 'chat.tool.result') { this.pending.resolve(msg.id, msg.result); return; }
-        // 其余(files/status/terminal 等)→ 标记来源设备后转发给网页端。
-        // 来源名让同时打开的多台设备能力页各自认领消息,避免终端输出串台。
         let attachment = {};
         try { attachment = ws.deserializeAttachment() || {}; } catch { /* ignore */ }
+        if (attachment.protocolVersion !== EXECUTOR_PROTOCOL_VERSION) {
+            try { ws.close(4002, 'hello required'); } catch { /* 已断 */ }
+            return;
+        }
+        // 工具结果:按 id 兑现 loop 的等待(loop 统一把结果发给 web 显示,这里不重复转发)
+        if (msg.type === 'chat.tool.result') { this.pending.resolve(msg.threadId || null, msg.id, msg.result); return; }
+        // 其余(files/status/terminal 等)→ 标记来源设备后转发给网页端。
+        // 来源名让同时打开的多台设备能力页各自认领消息,避免终端输出串台。
         this.dispatch.toWeb({ ...msg, from: attachment.name || '设备' });
     }
 
     // 起一个聊天 turn,挂 abort 控制,收尾清自己。
     // 不 await 调用方也没关系 —— 多个 threadId 可以各自独立并行跑。
     startChatTurn(threadId, input) {
-        const ac = new AbortController();
-        this.aborters.set(threadId, ac);
+        if (this.turns.has(threadId)) {
+            this.dispatch.toWeb({ type: 'chat.error', threadId, clientId: input?.clientId, content: '当前会话仍在处理中,请先终止或等待完成。', code: 'turn_busy' });
+            return Promise.resolve();
+        }
+        const controller = new AbortController();
+        const record = { controller, promise: null };
+        this.turns.set(threadId, record);
         const hub = this.hub();
-        return runChatTurn(hub, threadId, input, ac.signal)
-            .catch((e) => this.dispatch.toWeb({ type: 'chat.error', threadId, content: e.message || String(e) }))
-            .finally(() => { if (this.aborters.get(threadId) === ac) this.aborters.delete(threadId); });
+        const turn = runChatTurn(hub, threadId, input, controller.signal)
+            .catch((e) => this.dispatch.toWeb({ type: 'chat.error', threadId, clientId: input?.clientId, content: e.message || String(e) }))
+            .finally(() => { if (this.turns.get(threadId) === record) this.turns.delete(threadId); });
+        record.promise = turn;
+        this.ctx.waitUntil(turn);
+        return turn;
     }
 
     // 起一个任务 turn。任务只由 spawnTask 创建后启动。
     startTaskTurn(threadId, input) {
-        const ac = new AbortController();
-        this.aborters.set(threadId, ac);
+        if (this.turns.has(threadId)) return Promise.resolve();
+        const controller = new AbortController();
+        const record = { controller, promise: null };
+        this.turns.set(threadId, record);
         const hub = this.hub();
-        return runTaskTurn(hub, threadId, input, ac.signal)
+        const turn = runTaskTurn(hub, threadId, input, controller.signal)
             .catch((e) => this.dispatch.toWeb({ type: 'chat.error', threadId, content: e.message || String(e) }))
-            .finally(() => { if (this.aborters.get(threadId) === ac) this.aborters.delete(threadId); });
+            .finally(() => { if (this.turns.get(threadId) === record) this.turns.delete(threadId); });
+        record.promise = turn;
+        this.ctx.waitUntil(turn);
+        return turn;
+    }
+
+    async stopThread(threadId, reason = '已终止') {
+        const record = this.turns.get(threadId || null);
+        if (!record) return { running: false, stopped: true };
+        record.controller.abort(reason);
+        const stopped = await Promise.race([
+            record.promise.then(() => true, () => true),
+            new Promise((resolve) => setTimeout(() => resolve(false), 10000)),
+        ]);
+        return { running: true, stopped };
+    }
+
+    notifyWeb(message) {
+        this.dispatch.toWeb(message);
     }
 
     // 开一个新 task(状态 pending)并立即起第一轮。origin: ai/schedule/goal/app。
@@ -140,14 +174,32 @@ export class OneHub extends DurableObject {
         return createTask(this.hub(), { title, prompt, origin, originId, responseFormat });
     }
 
-    // Cron 触发扫描(Worker scheduled handler 每分钟调一次):到期日程 → 开 task。
-    async checkSchedules() {
+    async alarm() {
+        await recoverTasks(this.hub(), (id) => this.turns.has(id));
         await runDueSchedules(this.hub());
+        await runDueGoals(this.hub());
+        await this.reconcileAlarm();
     }
 
-    // 目标推进循环:active 且 next_run_at 到期 → 开一个推进任务(单飞行;下次时间由任务用 sql 写回 goals.next_run_at)
-    async checkGoals() {
-        await runDueGoals(this.hub());
+    async reconcileAlarm() {
+        const now = Date.now();
+        const row = await this.db.prepare(`
+          SELECT MIN(due_at) AS due_at FROM (
+            SELECT MIN(next_run_at) AS due_at FROM schedules WHERE enabled = 1 AND next_run_at IS NOT NULL
+            UNION ALL SELECT MIN(next_run_at) FROM goals WHERE status = 'active' AND next_run_at IS NOT NULL
+            UNION ALL SELECT MIN(CASE WHEN status = 'pending' THEN ? ELSE lease_until END)
+              FROM tasks WHERE status = 'pending' OR (status = 'running' AND lease_until IS NOT NULL)
+          )
+        `).bind(now).first();
+        const dueAt = Number(row?.due_at);
+        if (!Number.isFinite(dueAt) || dueAt <= 0) {
+            await this.ctx.storage.deleteAlarm();
+            return null;
+        }
+        const alarmAt = Math.max(dueAt, now + 1000);
+        const current = await this.ctx.storage.getAlarm();
+        if (!current || Math.abs(current - alarmAt) > 1000) await this.ctx.storage.setAlarm(alarmAt);
+        return alarmAt;
     }
 
     // agent loop / tick 用的句柄:把 DO 能力收口成一个对象注入
@@ -160,25 +212,21 @@ export class OneHub extends DurableObject {
             toWeb: (m) => dispatch.toWeb(m),
             broadcast: (m) => dispatch.broadcast(m), // web + 设备 + 浏览器
             toExecutor: (name, m) => dispatch.toExecutor(name, m), // 按 name 定向
-            hasDevice: () => dispatch.hasDevice(),
-            hasBrowser: () => dispatch.hasBrowser(),
             // 在线执行层清单 [{name,kind,caps}],喂给 prompt + 供 agent 选目标设备
             executors: () => dispatch.executors(),
             // 等设备回某次工具调用的结果(按 LLM tool call 的 id 关联)
-            awaitResult: (id, signal) => pending.create(id, 5 * 60 * 1000, signal).promise,
+            awaitResult: (threadId, id, signal) => pending.create(threadId, id, 5 * 60 * 1000, signal).promise,
             // 开新 task 并行跑,供 RPC/app bridge 等入口复用。
             spawnTask: (opts) => this.spawnTask(opts),
             startTaskTurn: (threadId, input) => this.startTaskTurn(threadId, input),
+            reconcileAlarm: () => this.reconcileAlarm(),
+            stopThread: (threadId, reason) => this.stopThread(threadId, reason),
         };
     }
 
     // 连接面板数据:当前所有在线执行层(手)的清单 [{id, kind, name, caps}]。
     broadcastPresence() {
-        const hands = this.dispatch.executorSockets().map((ws) => {
-            let a = {};
-            try { a = ws.deserializeAttachment() || {}; } catch { /* ignore */ }
-            return { name: a.name || '设备', kind: a.kind || 'device', caps: a.caps || [] };
-        });
+        const hands = this.dispatch.executors().map(({ name, kind, caps }) => ({ name, kind, caps }));
         this.dispatch.toWeb({ type: 'device.presence', hands });
     }
 }

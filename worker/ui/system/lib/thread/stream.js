@@ -14,6 +14,11 @@ function setupThreadStream({ threadId = null, messages, busy, pushRow, refresh, 
     let streamingKey = '';
     let compactKey = '';
 
+    function clientRow(clientId) {
+        if (!clientId) return null;
+        return messages.value.find((item) => item.role === 'user' && item.clientId === clientId) || null;
+    }
+
     function closeStreaming() {
         if (!streamingKey) return null;
         const row = messages.value.find((item) => item._key === streamingKey);
@@ -60,10 +65,16 @@ function setupThreadStream({ threadId = null, messages, busy, pushRow, refresh, 
 
     function onEvent(event) {
         if ((event.threadId || null) !== threadId) return; // 不是这条线的事件,交给认领它的那个 store
+        // 同一会话可能被多个标签页打开。带 clientId 的流只属于发起它的标签页。
+        if (event.clientId && !clientRow(event.clientId)) {
+            if (event.type === 'chat.done') refresh?.();
+            return;
+        }
 
         switch (event.type) {
             case 'chat.start':
                 busy.value = true;
+                if (clientRow(event.clientId)) clientRow(event.clientId).sending = false;
                 closeStreaming();
                 break;
             case 'chat.compact.start': {
@@ -101,15 +112,24 @@ function setupThreadStream({ threadId = null, messages, busy, pushRow, refresh, 
             }
             case 'chat.done':
                 closeStreaming();
+                if (clientRow(event.clientId)) {
+                    clientRow(event.clientId).sending = false;
+                    clientRow(event.clientId).failed = false;
+                }
                 busy.value = false;
                 refresh?.();
                 break;
             case 'chat.aborted':
                 closeStreaming();
+                if (clientRow(event.clientId)) clientRow(event.clientId).sending = false;
                 busy.value = false;
                 break;
             case 'chat.error':
                 closeStreaming();
+                if (clientRow(event.clientId)) {
+                    clientRow(event.clientId).sending = false;
+                    clientRow(event.clientId).failed = true;
+                }
                 pushRow({
                     role: 'system',
                     _key: mkKey('system'),

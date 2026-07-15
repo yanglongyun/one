@@ -1,6 +1,13 @@
 // 会话:多会话 + 置顶。消息经 messages.thread_id = chats.id 挂载。
-export async function list(db) {
-    const { results } = await db.prepare('SELECT * FROM chats ORDER BY pinned DESC, updated_at DESC').all();
+export async function list(db, { cursor = '', limit = 100 } = {}) {
+    const [pinned, updatedAt, id] = String(cursor).split('.');
+    const valid = pinned !== '' && Number.isFinite(Number(updatedAt)) && id;
+    const { results } = valid
+        ? await db.prepare(`SELECT * FROM chats
+          WHERE pinned < ? OR (pinned = ? AND (updated_at < ? OR (updated_at = ? AND id < ?)))
+          ORDER BY pinned DESC, updated_at DESC, id DESC LIMIT ?`)
+            .bind(Number(pinned), Number(pinned), Number(updatedAt), Number(updatedAt), id, limit).all()
+        : await db.prepare('SELECT * FROM chats ORDER BY pinned DESC, updated_at DESC, id DESC LIMIT ?').bind(limit).all();
     return results;
 }
 
@@ -25,9 +32,11 @@ export async function update(db, id, patch) {
 }
 
 export async function remove(db, id) {
-    await db.prepare('DELETE FROM messages WHERE thread_id = ?').bind(id).run();
-    await db.prepare('DELETE FROM compactions WHERE thread_id = ?').bind(id).run();
-    await db.prepare('DELETE FROM chats WHERE id = ?').bind(id).run();
+    await db.batch([
+        db.prepare('DELETE FROM messages WHERE thread_id = ?').bind(id),
+        db.prepare('DELETE FROM compactions WHERE thread_id = ?').bind(id),
+        db.prepare('DELETE FROM chats WHERE id = ?').bind(id),
+    ]);
 }
 
 // turn 期间的触碰:第一条用户消息给未命名会话起标题 + 刷新排序时间

@@ -1,10 +1,9 @@
-// 工具定义(schema)。定义在云,执行分流见 loop.js:
+// 工具定义(schema)。定义在云,执行分流见 tools/index.js:
 //   sql          → 云端原生(碰 D1,worker 就地执行)
-//   screenshot   → 云端编排视觉:定向找设备截图,再交给视觉模型
 //   shell        → 桌面设备捕捉(Rust 手)
 //   computer_*   → mac 桌面设备捕捉
 //   android_*    → 安卓设备捕捉
-//   browser_cdp  → 浏览器插件捕捉(chrome.debugger)
+//   chrome_debugger → 浏览器插件捕捉(chrome.debugger)
 // 原则:只暴露真正有执行层的工具。
 // summary:每个工具必填的一句话摘要,前端显示在工具消息上方。
 const SUMMARY = { type: 'string', description: '本次操作的一句话摘要,面向用户展示。' };
@@ -29,13 +28,32 @@ export const tools = [
             },
         },
     },
+    {
+        type: 'function',
+        function: {
+            name: 'one_manage',
+            description: '通过正式业务逻辑创建或修改 one 的记忆、目标、日程、任务和小应用。不要用 SQL 写系统表。app_save 的 data.files 可一次写 index.html、index.js、index.css、index.sql。',
+            parameters: {
+                type: 'object',
+                properties: {
+                    action: {
+                        type: 'string',
+                        enum: ['memory_save', 'memory_delete', 'goal_save', 'goal_delete', 'schedule_save', 'schedule_delete', 'task_create', 'app_save', 'app_delete'],
+                    },
+                    data: { type: 'object', description: '业务字段。修改或删除已有记录时带 id;应用使用 slug,代码放 files 对象。' },
+                    summary: SUMMARY,
+                },
+                required: ['action', 'data', 'summary'],
+            },
+        },
+    },
 
     // ───────── 云端数据 ─────────
     {
         type: 'function',
         function: {
             name: 'sql',
-            description: '在云端 D1 上执行任意 SQL。',
+            description: '查询云端数据，或写入 app_* 小应用数据表。平台系统表只能由正式业务接口修改。',
             parameters: {
                 type: 'object',
                 properties: {
@@ -67,37 +85,17 @@ export const tools = [
         },
     },
 
-    // ───────── 视觉 ─────────
-    {
-        type: 'function',
-        function: {
-            name: 'screenshot',
-            description: '截指定设备屏幕并让视觉模型按 prompt 返回文字结果。需要点击某处时,让 prompt 明确要求「返回目标元素中心的像素坐标 x,y(以及截图宽高)」,再据此调 android_tap(x,y) 或桌面点击。raw=true 时直接返回原始截图 {image,w,h,cw,ch} 不走视觉模型。',
-            parameters: {
-                type: 'object',
-                properties: {
-                    prompt: { type: 'string', description: '让视觉模型做什么。' },
-                    raw: { type: 'boolean', description: 'true 时返回原始截图 {image,w,h,cw,ch},不走视觉模型。' },
-                    device: { type: 'string', description: '目标设备 name。' },
-                    summary: SUMMARY,
-                },
-                required: ['prompt', 'summary'],
-            },
-        },
-    },
-
     // ───────── 浏览器 ─────────
     {
         type: 'function',
         function: {
-            name: 'browser_cdp',
-            description: '通过 Chrome DevTools Protocol 操作浏览器。',
+            name: 'chrome_debugger',
+            description: '通过在线 Chrome 扩展的 chrome.debugger API 操作当前活动标签页,原样发送页面级 CDP 命令。适合 Page/DOM/Runtime/Network/Input/Accessibility 等能力;它不是浏览器级 Remote Debugging 连接。不要用 Target.getTargets 或其他浏览器级命令检测扩展是否在线。命令报错只代表该方法、参数或当前标签页不可用,不代表扩展离线;在线状态以系统提示的当前在线设备为准。',
             parameters: {
                 type: 'object',
                 properties: {
-                    method: { type: 'string', description: 'CDP 方法名。' },
-                    params: { type: 'object', description: 'CDP 参数。' },
-                    tabId: { type: 'number', description: '目标标签 tabId。' },
+                    method: { type: 'string', description: '发送给当前活动标签页的 CDP 方法名。' },
+                    params: { type: 'object', description: '原样传给 chrome.debugger.sendCommand 的 CDP 参数。' },
                     device: { type: 'string', description: '目标浏览器插件 name。' },
                     summary: SUMMARY,
                 },

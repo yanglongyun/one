@@ -2,18 +2,11 @@ package com.oneapp.one
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
-import android.graphics.Bitmap
 import android.graphics.Path
 import android.graphics.Rect
-import android.os.Build
 import android.os.Bundle
-import android.util.Base64
-import android.view.Display
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
-import java.io.ByteArrayOutputStream
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -116,45 +109,6 @@ class HandAccessibilityService : AccessibilityService() {
     fun swipe(x1: Float, y1: Float, x2: Float, y2: Float) {
         val path = Path().apply { moveTo(x1, y1); lineTo(x2, y2) }
         dispatchGesture(GestureDescription.Builder().addStroke(GestureDescription.StrokeDescription(path, 0, 300)).build(), null, null)
-    }
-
-    /** 截屏(API30+):回 {image(base64 png), w,h(缩后像素), cw,ch(原始像素=触摸坐标空间)}。同步阻塞等回调。 */
-    fun screenshot(): JSONObject {
-        val out = JSONObject()
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            return out.put("error", "需要 Android 11+ 才能截屏")
-        }
-        val latch = CountDownLatch(1)
-        takeScreenshot(Display.DEFAULT_DISPLAY, mainExecutor, object : TakeScreenshotCallback {
-            override fun onSuccess(result: ScreenshotResult) {
-                try {
-                    val raw = Bitmap.wrapHardwareBuffer(result.hardwareBuffer, result.colorSpace)
-                        ?.copy(Bitmap.Config.ARGB_8888, false)
-                    result.hardwareBuffer.close()
-                    if (raw == null) { out.put("error", "位图转换失败"); return }
-                    val cw = raw.width; val ch = raw.height
-                    val scaled = if (cw > 1280) {
-                        val s = 1280f / cw
-                        Bitmap.createScaledBitmap(raw, 1280, (ch * s).toInt(), true)
-                    } else raw
-                    val baos = ByteArrayOutputStream()
-                    scaled.compress(Bitmap.CompressFormat.PNG, 100, baos)
-                    val b64 = Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP)
-                    out.put("image", "data:image/png;base64,$b64")
-                        .put("w", scaled.width).put("h", scaled.height)
-                        .put("cw", cw).put("ch", ch)
-                } catch (e: Exception) {
-                    out.put("error", e.message ?: "截屏处理失败")
-                } finally {
-                    latch.countDown()
-                }
-            }
-            override fun onFailure(errorCode: Int) {
-                out.put("error", "截屏失败 code=$errorCode"); latch.countDown()
-            }
-        })
-        if (!latch.await(8, TimeUnit.SECONDS)) return JSONObject().put("error", "截屏超时")
-        return out
     }
 
     /** 全局键:back / home / recents / notifications。 */

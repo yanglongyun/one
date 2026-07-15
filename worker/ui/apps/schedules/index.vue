@@ -17,6 +17,7 @@ const iconOf = (i) => ICONS[i % ICONS.length];
 
 /* ── 时间 / cron 文案 ─────────────────────────────── */
 const pad = (n) => String(n).padStart(2, '0');
+const localTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 function fmtTime(ts) {
     const t = Number(ts) || 0; if (!t) return '';
     const d = new Date(t);
@@ -24,60 +25,43 @@ function fmtTime(ts) {
 }
 
 const WD = ['日', '一', '二', '三', '四', '五', '六'];
-function utcToLocalHM(h, m) { const d = new Date(); d.setUTCHours(h, m, 0, 0); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
-function cronText(cron) {
+function cronText(cron, timezone = '') {
     const p = String(cron || '').trim().split(/\s+/);
     if (p.length !== 5) return cron || '—';
     const [mi, ho, , , dow] = p;
     if (/^\*\/\d+$/.test(mi) && ho === '*') return `每 ${mi.slice(2)} 分钟`;
     if (mi === '0' && ho === '*') return '每小时';
     if (/^\d+$/.test(mi) && /^\d+$/.test(ho)) {
-        const hm = utcToLocalHM(+ho, +mi);
-        if (dow === '*') return `每天 ${hm}`;
-        if (/^[0-6]$/.test(dow)) return `每周${WD[+dow]} ${hm}`;
+        const hm = `${pad(+ho)}:${pad(+mi)}`;
+        const zone = timezone ? ` · ${timezone}` : '';
+        if (dow === '*') return `每天 ${hm}${zone}`;
+        if (/^[0-6]$/.test(dow)) return `每周${WD[+dow]} ${hm}${zone}`;
     }
     return cron;
 }
 function describe(s) {
     if (s.kind === 'once') return s.run_at ? `一次性 · ${fmtTime(s.run_at)}` : '一次性';
-    return cronText(s.cron);
+    return cronText(s.cron, s.timezone);
 }
 
 // 「下次」文案(前瞻措辞):能从 cron 推就写「下次 …」,推不了就展示规律本身。
 function nextText(s) {
     if (!s.enabled) return '已停用';
-    if (s.kind === 'once') return s.run_at ? `${fmtTime(s.run_at)} 触发一次` : '未设置时间';
-    const p = String(s.cron || '').trim().split(/\s+/);
-    if (p.length === 5) {
-        const [mi, ho, dom, , dow] = p;
-        if (mi === '0' && ho === '*') return '下次 整点';
-        if (/^\d+$/.test(mi) && /^\d+$/.test(ho) && dom === '*') {
-            const next = new Date(); next.setUTCHours(+ho, +mi, 0, 0);
-            if (dow === '*') {
-                if (next.getTime() <= Date.now()) next.setDate(next.getDate() + 1);
-                const day = next.getDate() === new Date().getDate() ? '今天' : '明天';
-                return `下次 ${day} ${pad(next.getHours())}:${pad(next.getMinutes())}`;
-            }
-            if (/^[0-6]$/.test(dow)) {
-                while (next.getUTCDay() !== +dow || next.getTime() <= Date.now()) next.setDate(next.getDate() + 1);
-                return `下次 周${WD[next.getDay()]} ${pad(next.getHours())}:${pad(next.getMinutes())}`;
-            }
-        }
-    }
-    return cronText(s.cron);
+    if (s.next_run_at) return `下次 ${fmtTime(s.next_run_at)}`;
+    return '等待重新排期';
 }
 
 /* ── 新建弹窗 ─────────────────────────────────────── */
 const creating = ref(false);
 const form = ref(emptyForm());
 function emptyForm() {
-    return { name: '', prompt: '', kind: 'cron', cron: '30 23 * * *', runAtLocal: '' };
+    return { name: '', prompt: '', kind: 'cron', cron: '30 7 * * *', timezone: localTimezone(), runAtLocal: '' };
 }
 const CRON_PRESETS = [
-    { label: '每天早上 7:30', cron: '30 23 * * *' },
-    { label: '每天晚上 10 点', cron: '0 14 * * *' },
+    { label: '每天早上 7:30', cron: '30 7 * * *' },
+    { label: '每天晚上 10 点', cron: '0 22 * * *' },
     { label: '每小时', cron: '0 * * * *' },
-    { label: '每周一早 9 点', cron: '0 1 * * 1' },
+    { label: '每周一早 9 点', cron: '0 9 * * 1' },
 ];
 function openNew() { form.value = emptyForm(); creating.value = true; }
 
@@ -88,12 +72,12 @@ async function save() {
         if (!f.runAtLocal) return;
         body.run_at = new Date(f.runAtLocal).getTime();
     }
-    else body.cron = f.cron.trim();
+    else { body.cron = f.cron.trim(); body.timezone = f.timezone || 'UTC'; }
     await schedules.save(body);
     creating.value = false;
 }
 
-onMounted(schedules.load);
+onMounted(() => { schedules.bind(); schedules.load(); });
 </script>
 
 <template>
@@ -140,6 +124,7 @@ onMounted(schedules.load);
                         </div>
                     </div>
                 </div>
+                <button v-if="schedules.nextCursor" class="btn btn-plain load-more" :disabled="schedules.loading" @click="schedules.loadMore">{{ schedules.loading ? '加载中…' : '加载更多' }}</button>
             </div>
         </main>
 
@@ -168,8 +153,9 @@ onMounted(schedules.load);
                         <div class="rule-chips">
                             <button v-for="p in CRON_PRESETS" :key="p.cron" class="rule-chip" :class="{ on: form.cron.trim() === p.cron }" @click="form.cron = p.cron">{{ p.label }}</button>
                         </div>
-                        <input class="input mono" style="margin-top:8px;font-size:12.5px" v-model="form.cron" placeholder="自定义 cron(UTC),如 30 23 * * *" />
-                        <div style="margin-top:6px;font-size:12px;color:var(--ink-3)">{{ cronText(form.cron) }}</div>
+                        <input class="input mono" style="margin-top:8px;font-size:12.5px" v-model="form.cron" placeholder="自定义 cron,如 30 7 * * *" />
+                        <input class="input mono" style="margin-top:8px;font-size:12.5px" v-model="form.timezone" placeholder="时区,如 Asia/Shanghai" />
+                        <div style="margin-top:6px;font-size:12px;color:var(--ink-3)">{{ cronText(form.cron, form.timezone) }}</div>
                     </div>
                     <div v-else class="field mt-3">
                         <label>执行时间</label>
@@ -186,6 +172,7 @@ onMounted(schedules.load);
 </template>
 
 <style scoped>
+.load-more { display: flex; margin: 14px auto 0; }
 .list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
 .sched-card { padding: 16px 18px 15px; }
 .sched-card.off .sched-name, .sched-card.off .sched-cmd { color: var(--ink-3); }

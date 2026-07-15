@@ -7,10 +7,21 @@ export default async function goalsApi(request, ctx, { id }) {
     const now = Date.now();
 
     if (!id) {
-        if (request.method === 'GET') return Response.json({ goals: await repo.list(db) });
+        if (request.method === 'GET') {
+            const url = new URL(request.url);
+            const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit')) || 50));
+            const rows = await repo.list(db, { cursor: url.searchParams.get('cursor') || '', limit });
+            const hasMore = rows.length > limit;
+            const goals = hasMore ? rows.slice(0, limit) : rows;
+            const last = goals.at(-1);
+            return Response.json({ goals, nextCursor: hasMore && last ? `${last.created_at}.${last.id}` : null });
+        }
         if (request.method === 'POST') {
             const body = await request.json().catch(() => ({}));
-            return Response.json({ goal: await repo.create(db, body, now) });
+            const goal = await repo.create(db, body, now);
+            await ctx.hub.reconcileAlarm();
+            await ctx.hub.notifyWeb({ type: 'goals.changed' });
+            return Response.json({ goal });
         }
     } else {
         if (request.method === 'GET') {
@@ -20,9 +31,17 @@ export default async function goalsApi(request, ctx, { id }) {
         }
         if (request.method === 'PUT') {
             const body = await request.json().catch(() => ({}));
-            return Response.json({ goal: await repo.update(db, id, body, now) });
+            const goal = await repo.update(db, id, body, now);
+            await ctx.hub.reconcileAlarm();
+            await ctx.hub.notifyWeb({ type: 'goals.changed' });
+            return Response.json({ goal });
         }
-        if (request.method === 'DELETE') { await repo.remove(db, id); return Response.json({ ok: true }); }
+        if (request.method === 'DELETE') {
+            await repo.remove(db, id);
+            await ctx.hub.reconcileAlarm();
+            await ctx.hub.notifyWeb({ type: 'goals.changed' });
+            return Response.json({ ok: true });
+        }
     }
     return Response.json({ error: 'method not allowed' }, { status: 405 });
 }

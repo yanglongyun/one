@@ -11,17 +11,17 @@ const theme = useThemeStore();
 const model = useModelStore();
 const ws = useWsStore();
 
-// —— 模型 / 视觉 / 压缩(显式保存) ——
+// —— 模型 / 压缩(显式保存) ——
 const form = reactive({
     apiUrl: '', apiKey: '', model: '', authMode: 'bearer',
-    visionEnabled: false,
-    visionApiUrl: '', visionApiKey: '', visionModel: '', visionAuthMode: 'bearer',
-    compressThreshold: '12000', recentRawMessages: '100', toolResultMaxChars: '12000', toolMaxRounds: '50',
+    thinkingEnabled: false, reasoningEffort: '', maxOutputTokens: '',
+    compressThreshold: '64000', recentRawMessages: '100', toolResultMaxChars: '12000', toolMaxRounds: '50',
 });
 const saved = ref(false);
 const saving = ref(false);
 const showKey = ref(false);
-const showVisionKey = ref(false);
+const testingModel = ref(false);
+const testResult = ref('');
 
 // —— 顶部分页 tab ——
 const tab = ref('model'); // model | advanced | account | appearance
@@ -61,19 +61,16 @@ async function changePassword() {
 
 // 服务器只回掩码,不回明文 key
 const keyMasked = computed(() => model.config.keyPreview || (model.config.hasKey ? '已设置' : '未设置'));
-const visionKeyMasked = computed(() => model.config.visionKeyPreview || (model.config.hasVisionKey ? '已设置' : '未设置'));
 
 const dirty = computed(() =>
     form.apiUrl !== (model.config.apiUrl || '') ||
     form.model !== (model.config.model || '') ||
     form.apiKey.trim().length > 0 ||
     form.authMode !== (model.config.authMode || 'bearer') ||
-    form.visionEnabled !== Boolean(model.config.visionEnabled) ||
-    form.visionApiUrl !== (model.config.visionApiUrl || '') ||
-    form.visionModel !== (model.config.visionModel || '') ||
-    form.visionApiKey.trim().length > 0 ||
-    form.visionAuthMode !== (model.config.visionAuthMode || 'bearer') ||
-    String(form.compressThreshold) !== String(model.config.compressThreshold ?? 12000) ||
+    form.thinkingEnabled !== Boolean(model.config.thinkingEnabled) ||
+    form.reasoningEffort !== (model.config.reasoningEffort || '') ||
+    String(form.maxOutputTokens) !== String(model.config.maxOutputTokens || '') ||
+    String(form.compressThreshold) !== String(model.config.compressThreshold ?? 64000) ||
     String(form.recentRawMessages) !== String(model.config.recentRawMessages ?? 100) ||
     String(form.toolResultMaxChars) !== String(model.config.toolResultMaxChars ?? 12000) ||
     String(form.toolMaxRounds) !== String(model.config.toolMaxRounds ?? 50)
@@ -85,12 +82,10 @@ function syncFromServer() {
     form.model = c.model || '';
     form.apiKey = ''; // 不回填明文,留空＝不改
     form.authMode = c.authMode || 'bearer';
-    form.visionEnabled = Boolean(c.visionEnabled);
-    form.visionApiUrl = c.visionApiUrl || '';
-    form.visionModel = c.visionModel || '';
-    form.visionApiKey = '';
-    form.visionAuthMode = c.visionAuthMode || 'bearer';
-    form.compressThreshold = String(c.compressThreshold ?? 12000);
+    form.thinkingEnabled = Boolean(c.thinkingEnabled);
+    form.reasoningEffort = c.reasoningEffort || '';
+    form.maxOutputTokens = String(c.maxOutputTokens || '');
+    form.compressThreshold = String(c.compressThreshold ?? 64000);
     form.recentRawMessages = String(c.recentRawMessages ?? 100);
     form.toolResultMaxChars = String(c.toolResultMaxChars ?? 12000);
     form.toolMaxRounds = String(c.toolMaxRounds ?? 50);
@@ -107,24 +102,57 @@ async function save() {
         apiUrl: String(form.apiUrl).trim(),
         model: String(form.model).trim(),
         authMode: form.authMode,
-        visionEnabled: form.visionEnabled ? '1' : '',
-        visionApiUrl: String(form.visionApiUrl).trim(),
-        visionModel: String(form.visionModel).trim(),
-        visionAuthMode: form.visionAuthMode,
-        compressThreshold: String(Number(form.compressThreshold) || 12000),
+        thinkingEnabled: form.thinkingEnabled ? '1' : '',
+        reasoningEffort: form.reasoningEffort,
+        maxOutputTokens: String(form.maxOutputTokens || '').trim(),
+        compressThreshold: String(Number(form.compressThreshold) || 64000),
         recentRawMessages: String(Number(form.recentRawMessages) || 100),
         toolResultMaxChars: String(Number(form.toolResultMaxChars) || 12000),
         toolMaxRounds: String(Number(form.toolMaxRounds) || 50),
     };
     if (form.apiKey.trim()) patch.apiKey = form.apiKey.trim();
-    if (form.visionApiKey.trim()) patch.visionApiKey = form.visionApiKey.trim();
-    await model.save(patch);
-    syncFromServer();
-    saving.value = false;
-    saved.value = true;
-    setTimeout(() => { saved.value = false; }, 1800);
+    try {
+        await model.save(patch);
+        syncFromServer();
+        saved.value = true;
+        setTimeout(() => { saved.value = false; }, 1800);
+    } finally {
+        saving.value = false;
+    }
 }
 function reset() { syncFromServer(); }
+
+function useAgentDefaults() {
+    form.compressThreshold = '64000';
+    form.recentRawMessages = '100';
+    form.toolResultMaxChars = '12000';
+    form.toolMaxRounds = '50';
+}
+
+async function testConnection() {
+    if (testingModel.value) return;
+    testingModel.value = true;
+    testResult.value = '';
+    try {
+        const result = await api.post('/api/settings/test', {
+            apiUrl: form.apiUrl,
+            apiKey: form.apiKey,
+            model: form.model,
+            authMode: form.authMode,
+        });
+        testResult.value = result.ok ? '连接成功' : (result.error || '连接失败');
+    } catch (error) {
+        testResult.value = error.message || '连接失败';
+    } finally {
+        testingModel.value = false;
+    }
+}
+
+async function clearKey() {
+    await model.save({ clearApiKey: true });
+    syncFromServer();
+    testResult.value = '密钥已清除';
+}
 
 onMounted(load);
 watch(() => ws.connected, (v) => { if (v) load(); });
@@ -171,7 +199,7 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     </div>
                 </div>
 
-                <!-- 模型页:主模型 + 视觉 -->
+                <!-- 模型页 -->
                 <div v-show="tab === 'model'">
 
                 <!-- ① 主模型 -->
@@ -186,9 +214,9 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     <div class="srow">
                         <span class="grow">
                             <span class="s-label">接口地址</span>
-                            <div class="s-sub">兼容 OpenAI / Anthropic 接口的 base URL</div>
+                            <div class="s-sub">OpenAI 兼容 chat/completions 完整地址</div>
                         </span>
-                        <span class="s-ctrl"><input v-model="form.apiUrl" class="input mono" :disabled="!ws.connected" placeholder="https://api.openai.com/v1" spellcheck="false" autocapitalize="off" /></span>
+                        <span class="s-ctrl"><input v-model="form.apiUrl" class="input mono" :disabled="!ws.connected" placeholder="https://api.openai.com/v1/chat/completions" spellcheck="false" autocapitalize="off" /></span>
                     </div>
                     <div class="srow">
                         <span class="grow">
@@ -221,52 +249,16 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                             </span>
                         </span>
                     </div>
-                </div>
-
-                <!-- ② 视觉能力 -->
-                <div class="card sec">
-                    <div class="sec-head">
-                        <span class="grow">
-                            <span class="sec-title">视觉能力</span>
-                            <div class="sec-desc">one 要看屏幕(截屏理解)时用什么模型。</div>
-                        </span>
-                    </div>
                     <div class="srow">
                         <span class="grow">
-                            <span class="s-label">视觉模型</span>
-                            <div class="s-sub">截屏理解、屏幕操控都会走它</div>
+                            <span class="s-label">连接检查</span>
+                            <div class="s-sub">使用当前填写内容发送一次很小的非流式请求</div>
                         </span>
-                        <span class="s-ctrl">
-                            <span class="seg">
-                                <button class="seg-item" :class="{ on: form.visionEnabled }" :disabled="!ws.connected" @click="form.visionEnabled = true">复用主模型</button>
-                                <button class="seg-item" :class="{ on: !form.visionEnabled }" :disabled="!ws.connected" @click="form.visionEnabled = false">单独配置</button>
-                            </span>
+                        <span class="s-ctrl test-actions">
+                            <span v-if="testResult" class="test-result">{{ testResult }}</span>
+                            <button v-if="model.config.hasKey" class="btn btn-danger-soft" :disabled="testingModel" @click="clearKey">清除密钥</button>
+                            <button class="btn btn-plain" :disabled="testingModel || !form.apiUrl.trim() || !form.model.trim()" @click="testConnection">{{ testingModel ? '测试中…' : '测试连接' }}</button>
                         </span>
-                    </div>
-                    <div v-if="form.visionEnabled" class="vision-hint">主模型支持图像时可直接复用,不用再配一遍。</div>
-                    <div v-else class="vision-form">
-                        <div class="field">
-                            <label>接口地址</label>
-                            <input v-model="form.visionApiUrl" class="input mono" :disabled="!ws.connected" placeholder="https://…/v1/chat/completions" spellcheck="false" autocapitalize="off" />
-                        </div>
-                        <div class="field">
-                            <label>密钥 <span style="font-weight:500;color:var(--ink-4)">留空＝不改</span></label>
-                            <span class="key-wrap" style="width:100%">
-                                <input v-model="form.visionApiKey" class="input mono" :type="showVisionKey ? 'text' : 'password'" :disabled="!ws.connected" :placeholder="visionKeyMasked" autocomplete="off" spellcheck="false" />
-                                <button class="eye-btn" :class="{ on: showVisionKey }" title="显示 / 隐藏密钥" @click="showVisionKey = !showVisionKey"><Icon name="eye" style="width:15px;height:15px" /></button>
-                            </span>
-                        </div>
-                        <div class="field">
-                            <label>模型名</label>
-                            <input v-model="form.visionModel" class="input mono" :disabled="!ws.connected" placeholder="比如 claude-haiku-4-5 / gpt-4o" spellcheck="false" autocapitalize="off" />
-                        </div>
-                        <div class="field">
-                            <label>认证方式</label>
-                            <span class="seg" style="align-self:flex-start">
-                                <button class="seg-item" :class="{ on: form.visionAuthMode === 'bearer' }" :disabled="!ws.connected" @click="form.visionAuthMode = 'bearer'">Bearer</button>
-                                <button class="seg-item" :class="{ on: form.visionAuthMode === 'x-api-key' }" :disabled="!ws.connected" @click="form.visionAuthMode = 'x-api-key'">x-api-key</button>
-                            </span>
-                        </div>
                     </div>
                 </div>
 
@@ -275,6 +267,38 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                 <!-- 高级页:对话压缩 -->
                 <div v-show="tab === 'advanced'">
 
+                <div class="card sec">
+                    <div class="sec-head">
+                        <span class="grow">
+                            <span class="sec-title">模型能力</span>
+                            <div class="sec-desc">只在上游兼容时发送这些参数；不兼容的模型请关闭或留空。</div>
+                        </span>
+                    </div>
+                    <div class="srow">
+                        <span class="grow"><span class="s-label">深度思考</span><div class="s-sub">发送 OpenAI 兼容扩展参数 thinking</div></span>
+                        <button class="toggle" :class="{ on: form.thinkingEnabled }" :disabled="!ws.connected" @click="form.thinkingEnabled = !form.thinkingEnabled"></button>
+                    </div>
+                    <div class="srow">
+                        <span class="grow"><span class="s-label">思考强度</span><div class="s-sub">留空表示由模型自行决定</div></span>
+                        <span class="s-ctrl">
+                            <select v-model="form.reasoningEffort" class="input" :disabled="!ws.connected">
+                                <option value="">自动</option>
+                                <option value="low">低</option>
+                                <option value="medium">中</option>
+                                <option value="high">高</option>
+                                <option value="max">最大</option>
+                            </select>
+                        </span>
+                    </div>
+                    <div class="srow">
+                        <span class="grow"><span class="s-label">最大输出</span><div class="s-sub">留空使用模型默认值，上限 384000</div></span>
+                        <span class="s-ctrl">
+                            <input v-model="form.maxOutputTokens" class="input mono narrow" type="number" min="1" max="384000" step="1000" :disabled="!ws.connected" placeholder="模型默认" />
+                            <span class="unit">tokens</span>
+                        </span>
+                    </div>
+                </div>
+
                 <!-- ③ 对话压缩 -->
                 <div class="card sec">
                     <div class="sec-head">
@@ -282,6 +306,7 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                             <span class="sec-title">对话压缩</span>
                             <div class="sec-desc">对话太长时自动瘦身,省 token 也防跑偏。</div>
                         </span>
+                        <button class="btn btn-plain" @click="useAgentDefaults">恢复推荐值</button>
                     </div>
                     <div class="srow">
                         <span class="grow">
@@ -289,7 +314,7 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                             <div class="s-sub">更早的内容会被自动整理成摘要</div>
                         </span>
                         <span class="s-ctrl">
-                            <input v-model="form.compressThreshold" class="input mono narrow" type="number" step="1000" :disabled="!ws.connected" placeholder="12000" />
+                            <input v-model="form.compressThreshold" class="input mono narrow" type="number" min="1000" step="1000" :disabled="!ws.connected" placeholder="64000" />
                             <span class="unit">tokens</span>
                         </span>
                     </div>
@@ -420,10 +445,8 @@ watch(() => ws.connected, (v) => { if (v) load(); });
 .eye-btn:hover { background: var(--well); color: var(--candy-deep); }
 .eye-btn.on { color: var(--candy-deep); }
 
-/* 视觉能力:单独配置展开表单 */
-.vision-hint { padding: 0 0 14px; font-size: 12px; color: var(--ink-3); }
-.vision-form { display: flex; flex-direction: column; gap: 12px; padding: 2px 0 16px; }
-.vision-form .input { font-size: 12.5px; }
+.test-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.test-result { font-size: 11.5px; color: var(--ink-3); font-weight: 700; }
 
 .theme-seg .seg-item { gap: 6px; min-width: 86px; justify-content: center; }
 .theme-seg .o-icon { width: 15px; height: 15px; }

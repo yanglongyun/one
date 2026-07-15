@@ -37,7 +37,11 @@ export const useTaskThreadStore = defineStore('taskThread', () => {
         if (bound) return;
         bound = true;
         ws.onMessage('chat.*', (e) => stream?.onEvent(e));
-        ws.onMessage('task.updated', (m) => { if (m.task && m.task.id === taskId.value) Object.assign(task.value || (task.value = {}), m.task); });
+        ws.onMessage('task.updated', (m) => {
+            if (!m.task || m.task.id !== taskId.value) return;
+            Object.assign(task.value || (task.value = {}), m.task);
+            if (!['pending', 'running'].includes(m.task.status)) busy.value = false;
+        });
     }
 
     async function refreshTask() {

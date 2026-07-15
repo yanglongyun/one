@@ -3,7 +3,7 @@
 //   GET /api/apps/<slug>/runtime/index.js  → 最新 JS
 //   GET /api/apps/<slug>/runtime/index.css → 最新 CSS
 //   GET /api/apps/<slug>/runtime/index.sql → 建表 DDL(SDK 打开应用时先逐条跑它建表,再加载 index.js)
-//   GET /api/apps/sdk.js                   → window.one SDK(sql/proxy/llm/vision/agent 五个方法)
+//   GET /api/apps/sdk.js                   → window.one SDK(sql/proxy/llm/agent 四个方法)
 // 页面本身不鉴权(单用户;能力桥调用才需要 token,SDK 自动从 localStorage 带)。
 import * as repo from './repository.js';
 
@@ -59,11 +59,11 @@ function emptyShell(app) {
     const name = escapeHtml(app.name);
     return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${name}</title></head>
 <body style="font-family:system-ui;display:grid;place-items:center;height:100vh;margin:0;color:#54688a">
-<div>「${name}」还没有界面 —— 让 one 用 app_update 写入 index.html。</div></body></html>`;
+<div>「${name}」还没有界面 —— 让助理用 one_manage 写入 index.html。</div></body></html>`;
 }
 
 // window.one —— 应用前端的全部能力面。
-export const SDK_SOURCE = `// one SDK · window.one —— 自定义应用的能力面:sql / proxy / llm / vision / agent
+export const SDK_SOURCE = `// one SDK · window.one —— 自定义应用的能力面:sql / proxy / llm / agent
 (() => {
     const token = () => { try { return localStorage.getItem('one_token') || ''; } catch { return ''; } };
 
@@ -92,14 +92,6 @@ export const SDK_SOURCE = `// one SDK · window.one —— 自定义应用的能
         return task;
     }
 
-    const toDataUrl = (img) => new Promise((resolve, reject) => {
-        if (typeof img === 'string') return resolve(img);
-        const r = new FileReader();
-        r.onload = () => resolve(r.result);
-        r.onerror = reject;
-        r.readAsDataURL(img);
-    });
-
     window.one = {
         // SQL 直达 D1。SELECT 返回行数组;其余返回 {ok, changes, lastRowId}
         async sql(query, params) {
@@ -110,10 +102,6 @@ export const SDK_SOURCE = `// one SDK · window.one —— 自定义应用的能
         proxy(url, opts) { return call('proxy', { url, ...(opts || {}) }); },
         // 主模型一次性推理,返回文本
         async llm(prompt, opts) { return (await call('llm', { prompt, ...(opts || {}) })).text; },
-        // 视觉模型看图(dataURL / Blob / File),返回文本
-        async vision(image, prompt) {
-            return (await call('vision', { image: await toDataUrl(image), prompt })).text;
-        },
         // 开一个任务走系统 agent 内核(与主对话同一个大脑),默认等它跑完并返回任务对象
         // opts: {title, wait=true, interval=2000, timeout=300000, responseFormat}
         //   responseFormat 走 OpenAI 兼容 response_format(如 {type:'json_object'}):
