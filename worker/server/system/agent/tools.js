@@ -1,6 +1,7 @@
 // 工具定义(schema)。定义在云,执行分流见 tools/index.js:
 //   sql          → 云端原生(碰 D1,worker 就地执行)
 //   shell        → 桌面设备捕捉(Rust 手)
+//   read_file / write_file / edit_file → 桌面设备捕捉(文件三件套;编辑=精确串替换)
 //   computer_*   → mac 桌面设备捕捉
 //   android_*    → 安卓设备捕捉
 //   chrome_debugger → 浏览器插件捕捉(chrome.debugger)
@@ -81,6 +82,60 @@ export const tools = [
                     timeout: { type: 'number', description: '超时秒数,默认 30,范围 [1,300]。' },
                 },
                 required: ['command', 'summary'],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'read_file',
+            description: '读取桌面设备上的文本文件。改文件前必须先读,确认现状再动手。',
+            parameters: {
+                type: 'object',
+                properties: {
+                    path: { type: 'string', description: '绝对路径。' },
+                    offset: { type: 'number', description: '可选:从第几行开始读(1 起)。' },
+                    limit: { type: 'number', description: '可选:最多读多少行。' },
+                    summary: SUMMARY,
+                    device: { type: 'string', description: '目标设备 name。' },
+                },
+                required: ['path', 'summary'],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'write_file',
+            description: '在桌面设备上写入整个文件(新建或明确要整体重写时用;父目录自动创建)。对已有文件做局部修改必须用 edit_file,禁止整文件覆盖。',
+            parameters: {
+                type: 'object',
+                properties: {
+                    path: { type: 'string', description: '绝对路径。' },
+                    content: { type: 'string', description: '完整文件内容。' },
+                    summary: SUMMARY,
+                    device: { type: 'string', description: '目标设备 name。' },
+                },
+                required: ['path', 'content', 'summary'],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'edit_file',
+            description: '编辑桌面设备上的文件:把 old_string 精确替换为 new_string。old_string 必须与文件内容逐字符一致且默认唯一,匹配不到或不唯一会报错拒改 —— 这是安全的局部修改方式,优先于 shell 重定向和 write_file。',
+            parameters: {
+                type: 'object',
+                properties: {
+                    path: { type: 'string', description: '绝对路径。' },
+                    old_string: { type: 'string', description: '要替换的原文(逐字符精确,含缩进换行)。' },
+                    new_string: { type: 'string', description: '替换后的新文。' },
+                    replace_all: { type: 'boolean', description: '可选:替换全部匹配,默认只允许唯一一处。' },
+                    summary: SUMMARY,
+                    device: { type: 'string', description: '目标设备 name。' },
+                },
+                required: ['path', 'old_string', 'new_string', 'summary'],
             },
         },
     },

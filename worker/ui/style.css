@@ -328,7 +328,8 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
 }
 .filter:hover { color: var(--ink); border-color: var(--line); }
 .filter.on {
-    color: var(--on-accent);
+    /* 文字用画布色:亮色下近白、夜间下近黑,两个主题对比度都成立 */
+    color: var(--sky-low);
     background: var(--ink);
     border-color: var(--ink);
 }

@@ -21,15 +21,104 @@ pub async fn handle_calls(v: Value, tx: &Tx) {
         let name = call.get("name").and_then(|x| x.as_str()).unwrap_or("");
         let id = call.get("id").cloned().unwrap_or(Value::Null);
         let args = call.get("args").cloned().unwrap_or_else(|| json!({}));
-        // 只捕捉归属本设备的工具:shell + computer_*(mac 控制);其余交给别的执行层
+        // 只捕捉归属本设备的工具:shell + 文件三件套 + computer_*(mac 控制);其余交给别的执行层
         let result: Value = if name == "shell" {
             Value::String(run_shell(&args).await)
+        } else if name == "read_file" || name == "write_file" || name == "edit_file" {
+            Value::String(run_file_tool(name, &args).await)
         } else if crate::apps::computer::owns(name) {
             crate::apps::computer::run(name, &args).await
         } else {
             continue;
         };
         send(tx, json!({ "type": "chat.tool.result", "threadId": thread_id, "id": id, "result": result }));
+    }
+}
+
+// 文件三件套:read_file / write_file / edit_file。
+// edit_file 是安全的局部修改:old_string 逐字符精确匹配,匹配不到或不唯一(未开 replace_all)一律报错拒改,
+// 从机制上杜绝「shell 重定向写歪 → 整文件覆盖」这类事故。
+async fn run_file_tool(name: &str, args: &Value) -> String {
+    let path = args.get("path").and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
+    if path.is_empty() {
+        return "缺 path".into();
+    }
+    if !std::path::Path::new(&path).is_absolute() {
+        return format!("path 必须是绝对路径:{path}");
+    }
+
+    match name {
+        "read_file" => {
+            let bytes = match tokio::fs::read(&path).await {
+                Ok(b) => b,
+                Err(e) => return format!("读取失败 {path}: {e}"),
+            };
+            let text = String::from_utf8_lossy(&bytes).to_string();
+            let total_lines = text.lines().count();
+            let offset = args.get("offset").and_then(|v| v.as_u64()).unwrap_or(1).max(1) as usize;
+            let limit = args.get("limit").and_then(|v| v.as_u64()).map(|v| v as usize);
+            let sliced: String = match (offset > 1, limit) {
+                (false, None) => text,
+                _ => text
+                    .lines()
+                    .skip(offset - 1)
+                    .take(limit.unwrap_or(usize::MAX))
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            };
+            let mut out = sliced;
+            if out.len() > MAX_BUFFER {
+                out.truncate(MAX_BUFFER);
+                out.push_str("\n…(内容超长已截断)");
+            }
+            if offset > 1 || limit.is_some() {
+                format!("(共 {total_lines} 行,以下为第 {offset} 行起的片段)\n{out}")
+            } else if out.is_empty() {
+                "(空文件)".into()
+            } else {
+                out
+            }
+        }
+        "write_file" => {
+            let content = args.get("content").and_then(|x| x.as_str()).unwrap_or("");
+            if let Some(dir) = std::path::Path::new(&path).parent() {
+                if let Err(e) = tokio::fs::create_dir_all(dir).await {
+                    return format!("创建目录失败 {}: {e}", dir.display());
+                }
+            }
+            match tokio::fs::write(&path, content).await {
+                Ok(_) => format!("已写入 {path}({} 字节)", content.len()),
+                Err(e) => format!("写入失败 {path}: {e}"),
+            }
+        }
+        "edit_file" => {
+            let old = args.get("old_string").and_then(|x| x.as_str()).unwrap_or("");
+            let new = args.get("new_string").and_then(|x| x.as_str()).unwrap_or("");
+            if old.is_empty() {
+                return "old_string 不能为空".into();
+            }
+            if old == new {
+                return "old_string 与 new_string 相同,无需修改".into();
+            }
+            let text = match tokio::fs::read_to_string(&path).await {
+                Ok(t) => t,
+                Err(e) => return format!("读取失败 {path}: {e}"),
+            };
+            let count = text.matches(old).count();
+            let replace_all = args.get("replace_all").and_then(|v| v.as_bool()).unwrap_or(false);
+            if count == 0 {
+                return "未找到 old_string:必须与文件内容逐字符一致(含缩进与换行),先 read_file 核对".into();
+            }
+            if count > 1 && !replace_all {
+                return format!("old_string 匹配到 {count} 处,不唯一:扩大上下文使其唯一,或明确传 replace_all");
+            }
+            let updated = if replace_all { text.replace(old, new) } else { text.replacen(old, new, 1) };
+            match tokio::fs::write(&path, updated).await {
+                Ok(_) => format!("已替换 {count} 处:{path}"),
+                Err(e) => format!("写回失败 {path}: {e}"),
+            }
+        }
+        _ => "未知文件工具".into(),
     }
 }
 

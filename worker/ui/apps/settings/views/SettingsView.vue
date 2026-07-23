@@ -177,13 +177,11 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                         <div class="sec-head">
                             <span class="grow">
                                 <span class="sec-title">主题</span>
-                                <div class="sec-desc">选择你喜欢的界面氛围。</div>
                             </span>
                         </div>
                         <div class="srow">
                             <span class="grow">
                                 <span class="s-label">界面主题</span>
-                                <div class="s-sub">只保存在当前浏览器和设备中</div>
                             </span>
                             <span class="s-ctrl">
                                 <span class="seg theme-seg" aria-label="界面主题">
@@ -207,21 +205,17 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     <div class="sec-head">
                         <span class="grow">
                             <span class="sec-title">主模型</span>
-                            <div class="sec-desc">驱动 one 大脑的模型,没配好之前它什么都做不了。</div>
                         </span>
-                        <span v-if="model.config.hasKey && model.config.model" class="pill pill-ok"><Icon name="check" style="width:11px;height:11px" />已配置</span>
                     </div>
                     <div class="srow">
                         <span class="grow">
                             <span class="s-label">接口地址</span>
-                            <div class="s-sub">OpenAI 兼容 chat/completions 完整地址</div>
                         </span>
                         <span class="s-ctrl"><input v-model="form.apiUrl" class="input mono" :disabled="!ws.connected" placeholder="https://api.openai.com/v1/chat/completions" spellcheck="false" autocapitalize="off" /></span>
                     </div>
                     <div class="srow">
                         <span class="grow">
                             <span class="s-label">密钥</span>
-                            <div class="s-sub">只存在你自己的 Cloudflare 上,留空＝不改</div>
                         </span>
                         <span class="s-ctrl">
                             <span class="key-wrap">
@@ -233,14 +227,12 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     <div class="srow">
                         <span class="grow">
                             <span class="s-label">模型名</span>
-                            <div class="s-sub">对话、任务、日程共用这一个模型</div>
                         </span>
                         <span class="s-ctrl"><input v-model="form.model" class="input mono" :disabled="!ws.connected" placeholder="gpt-4o" spellcheck="false" autocapitalize="off" /></span>
                     </div>
                     <div class="srow">
                         <span class="grow">
                             <span class="s-label">认证方式</span>
-                            <div class="s-sub">密钥以哪种方式随请求发送</div>
                         </span>
                         <span class="s-ctrl">
                             <span class="seg">
@@ -252,7 +244,6 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     <div class="srow">
                         <span class="grow">
                             <span class="s-label">连接检查</span>
-                            <div class="s-sub">使用当前填写内容发送一次很小的非流式请求</div>
                         </span>
                         <span class="s-ctrl test-actions">
                             <span v-if="testResult" class="test-result">{{ testResult }}</span>
@@ -271,15 +262,14 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     <div class="sec-head">
                         <span class="grow">
                             <span class="sec-title">模型能力</span>
-                            <div class="sec-desc">只在上游兼容时发送这些参数；不兼容的模型请关闭或留空。</div>
                         </span>
                     </div>
                     <div class="srow">
-                        <span class="grow"><span class="s-label">深度思考</span><div class="s-sub">发送 OpenAI 兼容扩展参数 thinking</div></span>
+                        <span class="grow"><span class="s-label">深度思考</span></span>
                         <button class="toggle" :class="{ on: form.thinkingEnabled }" :disabled="!ws.connected" @click="form.thinkingEnabled = !form.thinkingEnabled"></button>
                     </div>
                     <div class="srow">
-                        <span class="grow"><span class="s-label">思考强度</span><div class="s-sub">留空表示由模型自行决定</div></span>
+                        <span class="grow"><span class="s-label">思考强度</span></span>
                         <span class="s-ctrl">
                             <select v-model="form.reasoningEffort" class="input" :disabled="!ws.connected">
                                 <option value="">自动</option>
@@ -291,7 +281,7 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                         </span>
                     </div>
                     <div class="srow">
-                        <span class="grow"><span class="s-label">最大输出</span><div class="s-sub">留空使用模型默认值，上限 384000</div></span>
+                        <span class="grow"><span class="s-label">最大输出</span></span>
                         <span class="s-ctrl">
                             <input v-model="form.maxOutputTokens" class="input mono narrow" type="number" min="1" max="384000" step="1000" :disabled="!ws.connected" placeholder="模型默认" />
                             <span class="unit">tokens</span>
@@ -304,14 +294,12 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     <div class="sec-head">
                         <span class="grow">
                             <span class="sec-title">对话压缩</span>
-                            <div class="sec-desc">对话太长时自动瘦身,省 token 也防跑偏。</div>
                         </span>
                         <button class="btn btn-plain" @click="useAgentDefaults">恢复推荐值</button>
                     </div>
                     <div class="srow">
                         <span class="grow">
                             <span class="s-label">上下文达到多少开始摘要</span>
-                            <div class="s-sub">更早的内容会被自动整理成摘要</div>
                         </span>
                         <span class="s-ctrl">
                             <input v-model="form.compressThreshold" class="input mono narrow" type="number" min="1000" step="1000" :disabled="!ws.connected" placeholder="64000" />
@@ -321,7 +309,6 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     <div class="srow">
                         <span class="grow">
                             <span class="s-label">保留最近原文消息数</span>
-                            <div class="s-sub">摘要之外保留最近多少条原始消息</div>
                         </span>
                         <span class="s-ctrl">
                             <input v-model="form.recentRawMessages" class="input mono narrow" type="number" min="1" max="1000" step="10" :disabled="!ws.connected" placeholder="100" />
@@ -331,7 +318,6 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     <div class="srow">
                         <span class="grow">
                             <span class="s-label">工具结果截断长度</span>
-                            <div class="s-sub">超长的工具返回只保留开头这么多</div>
                         </span>
                         <span class="s-ctrl">
                             <input v-model="form.toolResultMaxChars" class="input mono narrow" type="number" step="500" :disabled="!ws.connected" placeholder="12000" />
@@ -341,7 +327,6 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     <div class="srow">
                         <span class="grow">
                             <span class="s-label">工具循环上限</span>
-                            <div class="s-sub">一次回复最多连续调用多少轮工具</div>
                         </span>
                         <span class="s-ctrl">
                             <input v-model="form.toolMaxRounds" class="input mono narrow" type="number" min="1" max="500" step="1" :disabled="!ws.connected" placeholder="50" />
@@ -367,13 +352,11 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     <div class="sec-head">
                         <span class="grow">
                             <span class="sec-title">账户</span>
-                            <div class="sec-desc">一人一账户,数据全部在你自己的 Cloudflare 上。</div>
                         </span>
                     </div>
                     <div class="srow">
                         <span class="grow">
                             <span class="s-label">访问口令</span>
-                            <div class="s-sub">唯一的登录凭证 · 改后各设备需用新口令重连</div>
                         </span>
                         <span class="s-ctrl"><button class="btn btn-plain" @click="togglePw">{{ pwOpen ? '收起' : '修改口令' }}</button></span>
                     </div>
@@ -391,7 +374,6 @@ watch(() => ws.connected, (v) => { if (v) load(); });
                     <div class="srow">
                         <span class="grow">
                             <span class="s-label">登录状态</span>
-                            <div class="s-sub">退出后需要重新输入访问口令</div>
                         </span>
                         <span class="s-ctrl"><button class="btn btn-danger-soft" @click="logout">退出登录</button></span>
                     </div>
@@ -409,7 +391,6 @@ watch(() => ws.connected, (v) => { if (v) load(); });
 .sec:first-child { margin-top: 0; }
 .sec-head { display: flex; align-items: flex-start; gap: 12px; padding-bottom: 12px; }
 .sec-title { font-size: 13px; font-weight: 800; }
-.sec-desc { margin-top: 3px; font-size: 12px; color: var(--ink-3); line-height: 1.6; }
 
 /* 顶部分页 tab（分段）*/
 .tabs { display: flex; gap: 4px; padding: 4px; background: var(--well); border-radius: 14px; margin-bottom: 14px; }
@@ -429,7 +410,6 @@ watch(() => ws.connected, (v) => { if (v) load(); });
 .srow { display: flex; align-items: center; gap: 14px; padding: 13px 0; border-top: 1px solid var(--line-soft); }
 .srow:last-child { padding-bottom: 16px; }
 .s-label { font-size: 13px; font-weight: 700; }
-.s-sub { margin-top: 3px; font-size: 11.5px; color: var(--ink-3); line-height: 1.6; }
 .s-ctrl { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
 .s-ctrl .input { width: 250px; padding: 8px 12px; font-size: 12.5px; }
 .s-ctrl .input.mono { font-size: 12px; }

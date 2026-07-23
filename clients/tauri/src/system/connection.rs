@@ -78,6 +78,9 @@ async fn serve(cfg: &Config) -> Result<(), String> {
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     let caps: &[&str] = &[
         "shell",
+        "read_file",
+        "write_file",
+        "edit_file",
         "files",
         "status",
         "terminal",
@@ -88,7 +91,7 @@ async fn serve(cfg: &Config) -> Result<(), String> {
         "computer_open_app",
     ];
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    let caps: &[&str] = &["shell", "files", "status", "terminal"];
+    let caps: &[&str] = &["shell", "read_file", "write_file", "edit_file", "files", "status", "terminal"];
     let _ = tx.send(Message::Text(
         serde_json::json!({
             "type": "hello",
