@@ -1,5 +1,5 @@
 <script setup>
-// 日程列表(晴空软糖):糖果图标砖 + 规律 chip + 前瞻的「下次」+ 启停 toggle,整卡点进详情。
+// 日程列表:图标砖 + 规律 chip + 前瞻的「下次」+ 启停 toggle,整卡点进详情。
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSchedulesStore } from './store';
@@ -82,7 +82,7 @@ onMounted(() => { schedules.bind(); schedules.load(); });
 
 <template>
     <div class="app">
-        <TopBar emoji="⏰" title="日程">
+        <TopBar title="日程">
             <template #actions>
                 <button class="btn btn-primary" @click="openNew"><Icon name="plus" style="width:15px;height:15px" />新建</button>
             </template>

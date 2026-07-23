@@ -1,5 +1,5 @@
 <script setup>
-// 日程详情(晴空软糖):日程卡 + 编辑弹窗 + 触发记录(按 origin 过滤任务)。
+// 日程详情:日程卡 + 编辑弹窗 + 触发记录(按 origin 过滤任务)。
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSchedulesStore } from './store';
@@ -126,7 +126,7 @@ async function save() {
 }
 async function del() {
     const s = sched.value; if (!s) return;
-    if (!confirm(`删除日程「${s.name || '未命名'}」?`)) return;
+    if (!(await confirmDialog({ title: '删除日程', message: `删除日程「${s.name || '未命名'}」?`, confirmText: '删除', danger: true }))) return;
     await schedules.remove(s.id);
     router.push('/schedules');
 }

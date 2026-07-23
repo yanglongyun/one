@@ -30,7 +30,7 @@ async function onSubmit() {
 </script>
 
 <template>
-    <!-- 复用 GuardView 定义的 .gate-* 视觉(晴空软糖居中糖果卡) -->
+    <!-- 复用 GuardView 定义的 .gate-* 视觉(居中卡片) -->
     <div class="gate">
         <form class="gate-box" @submit.prevent="onSubmit">
             <div class="card gate-card">
@@ -79,9 +79,8 @@ async function onSubmit() {
     width: 56px; height: 56px; border-radius: 18px;
     margin: 0 auto 14px;
     display: grid; place-items: center;
-    background: linear-gradient(150deg, var(--brand-start), var(--candy-deep));
+    background: var(--candy);
     color: var(--on-accent); font-weight: 800; font-size: 26px;
-    box-shadow: var(--gloss), 0 8px 20px -4px rgba(43, 134, 228, .5);
 }
 .gate-title { font-size: 20px; font-weight: 800; letter-spacing: .01em; }
 .gate-sub { margin-top: 4px; font-size: 13px; color: var(--ink-3); font-weight: 500; }

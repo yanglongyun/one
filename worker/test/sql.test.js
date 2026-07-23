@@ -2,19 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { classifySql } from '../server/system/services/sql.js';
 
-test('查询系统表仍是只读操作', () => {
+test('SELECT(含 WITH)是唯一放行的语句', () => {
+    assert.equal(classifySql('SELECT * FROM notes'), 'read');
     assert.equal(classifySql('WITH recent AS (SELECT * FROM tasks) SELECT * FROM recent;'), 'read');
 });
 
-test('只允许 data_ 数据表写入和建表', () => {
-    assert.equal(classifySql('INSERT INTO data_notes (body) VALUES (?)'), 'write');
-    assert.equal(classifySql('CREATE TABLE IF NOT EXISTS "data_notes" (id INTEGER PRIMARY KEY)'), 'write');
-    assert.equal(classifySql('CREATE INDEX IF NOT EXISTS idx_notes ON data_notes(id)'), 'write');
-    assert.throws(() => classifySql('UPDATE memories SET title = ?'), /只允许 data_/);
-    assert.throws(() => classifySql('CREATE TABLE data_notes (parent INTEGER REFERENCES tasks(id))'), /外键/);
+test('拒绝一切写操作', () => {
+    assert.throws(() => classifySql('INSERT INTO notes (content) VALUES (?)'), /one_manage/);
+    assert.throws(() => classifySql('UPDATE memories SET title = ?'), /one_manage/);
+    assert.throws(() => classifySql('DELETE FROM notes'), /one_manage/);
+    assert.throws(() => classifySql('CREATE TABLE x (id INTEGER PRIMARY KEY)'), /one_manage/);
+    assert.throws(() => classifySql('DROP TABLE notes'), /one_manage/);
 });
 
 test('拒绝多语句和非 SQL 管理命令', () => {
-    assert.throws(() => classifySql('SELECT 1; DELETE FROM data_notes'), /一条 SQL/);
-    assert.throws(() => classifySql('PRAGMA table_info(data_notes)'), /不支持/);
+    assert.throws(() => classifySql('SELECT 1; DELETE FROM notes'), /一条 SQL/);
+    assert.throws(() => classifySql('PRAGMA table_info(notes)'), /one_manage/);
 });

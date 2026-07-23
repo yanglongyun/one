@@ -60,7 +60,7 @@ async function save() {
     showModal.value = false;
 }
 async function del(item) {
-    if (!confirm(`删除记忆「${item.title}」?`)) return;
+    if (!(await confirmDialog({ title: '删除记忆', message: `删除记忆「${item.title}」?`, confirmText: '删除', danger: true }))) return;
     await memories.remove(item.id);
 }
 
@@ -80,7 +80,7 @@ onMounted(() => { memories.bind(); memories.load(); });
 
 <template>
     <div class="app">
-        <TopBar emoji="🧠" title="记忆">
+        <TopBar title="记忆">
             <template #actions>
                 <button class="btn btn-primary" @click="openCreate">
                     <Icon name="plus" style="width:15px;height:15px" />新建
@@ -166,7 +166,7 @@ onMounted(() => { memories.bind(); memories.load(); });
 </template>
 
 <style>
-/* 记忆页(晴空软糖)—— 页面级样式,组件类走全局 style.css */
+/* 记忆页—— 页面级样式,组件类走全局 style.css */
 .tools-row { display: flex; align-items: center; gap: 10px; }
 .search-box {
     flex: 1; display: flex; align-items: center; gap: 8px;

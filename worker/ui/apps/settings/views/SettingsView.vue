@@ -404,14 +404,14 @@ watch(() => ws.connected, (v) => { if (v) load(); });
 </template>
 
 <style>
-/* 设置页(晴空软糖)—— 分区卡 + 设置行 */
+/* 设置页—— 分区卡 + 设置行 */
 .sec { margin-top: 14px; padding: 16px 20px 6px; }
 .sec:first-child { margin-top: 0; }
 .sec-head { display: flex; align-items: flex-start; gap: 12px; padding-bottom: 12px; }
 .sec-title { font-size: 13px; font-weight: 800; }
 .sec-desc { margin-top: 3px; font-size: 12px; color: var(--ink-3); line-height: 1.6; }
 
-/* 顶部分页 tab（晴空软糖分段）*/
+/* 顶部分页 tab（分段）*/
 .tabs { display: flex; gap: 4px; padding: 4px; background: var(--well); border-radius: 14px; margin-bottom: 14px; }
 .tab { flex: 1; padding: 9px 12px; border: 0; background: transparent; border-radius: 10px; font: inherit; font-size: 13px; font-weight: 700; color: var(--ink-3); cursor: pointer; transition: color .15s, background .15s, box-shadow .15s; }
 .tab.on { background: var(--panel); color: var(--ink); box-shadow: var(--shadow-s); }

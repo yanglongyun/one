@@ -1,10 +1,17 @@
 import { boundedFetch } from '../net/bounded-fetch.js';
 import { executeSql } from '../services/sql.js';
+import { executeManagement } from '../services/manage.js';
 
 export async function executeCloudTool(name, args, { hub, signal } = {}) {
     if (name === 'fetch') return fetchTool(args, signal);
     if (name === 'sql') return sqlTool(args, hub);
+    if (name === 'one_manage') return manageTool(args, hub);
     return { error: `未知云端工具: ${name}` };
+}
+
+async function manageTool(args, hub) {
+    try { return await executeManagement(args, hub); }
+    catch (err) { return { error: err.message || String(err) }; }
 }
 
 async function fetchTool(args, signal) {

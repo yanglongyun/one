@@ -54,7 +54,7 @@ async function onSubmit() {
 </template>
 
 <style>
-/* 登录门(晴空软糖)—— 居中糖果卡。Setup 页共用这套 .gate-* 类 */
+/* 登录门 —— 居中卡片。Setup 页共用这套 .gate-* 类 */
 .gate { min-height: 100dvh; display: grid; place-items: center; padding: 20px; }
 .gate-box { animation: gate-rise .55s var(--spring) both; }
 @keyframes gate-rise {
@@ -70,9 +70,8 @@ async function onSubmit() {
     width: 56px; height: 56px; border-radius: 18px;
     margin: 0 auto 14px;
     display: grid; place-items: center;
-    background: linear-gradient(150deg, var(--brand-start), var(--candy-deep));
+    background: var(--candy);
     color: var(--on-accent); font-weight: 800; font-size: 26px;
-    box-shadow: var(--gloss), 0 8px 20px -4px rgba(43, 134, 228, .5);
 }
 .gate-title { font-size: 20px; font-weight: 800; letter-spacing: .01em; }
 .gate-sub { margin-top: 4px; font-size: 13px; color: var(--ink-3); font-weight: 500; }

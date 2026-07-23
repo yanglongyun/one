@@ -15,7 +15,7 @@ CREATE TABLE tasks (
   title        TEXT NOT NULL DEFAULT '',
   prompt       TEXT NOT NULL DEFAULT '',
   status       TEXT NOT NULL DEFAULT 'pending',  -- pending/running/done/failed/aborted/cancelled
-  origin       TEXT NOT NULL DEFAULT 'ai',       -- ai/schedule/goal/goal_review/app
+  origin       TEXT NOT NULL DEFAULT 'ai',       -- ai/schedule/goal/goal_review
   origin_id    TEXT,                             -- 对应 schedules.id 或 goals.id(origin 相应时)
   response_format TEXT,                          -- 可选:要求最终回复走 OpenAI 兼容 response_format(如 {"type":"json_object"})
   summary      TEXT NOT NULL DEFAULT '',
@@ -108,4 +108,13 @@ CREATE TABLE memories (
 );
 CREATE INDEX idx_memories_visibility ON memories(visibility, id DESC);
 
--- AI 自建的数据表使用 data_ 前缀,由 sql 工具在运行时创建 —— 不在本文件里声明。
+-- ═══════════ 笔记(首行即标题;置顶在前)═══════════
+CREATE TABLE notes (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  content    TEXT NOT NULL,
+  color      TEXT NOT NULL DEFAULT 'yellow',   -- 便签纸色:yellow/blue/green/pink/purple/slate/plain
+  pinned     INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX idx_notes_list ON notes(pinned DESC, id DESC);

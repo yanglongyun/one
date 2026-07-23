@@ -5,7 +5,6 @@ import { useWsStore } from '@/system/stores/ws';
 import ChatHeader from './components/ChatHeader.vue';
 import Composer from './components/Composer.vue';
 import MessageStream from './components/MessageStream.vue';
-import ChatSidebar from './components/ChatSidebar.vue';
 
 const chat = useChatStore();
 const ws = useWsStore();
@@ -29,18 +28,14 @@ watch(() => ws.connected, (ok) => {
 <template>
     <div class="app">
         <ChatHeader />
-        <div class="chat-body">
-            <ChatSidebar />
-            <div class="chat-main">
-                <MessageStream />
-                <Composer />
-            </div>
+        <div class="chat-main">
+            <MessageStream />
+            <Composer />
         </div>
     </div>
 </template>
 
 <style scoped>
-/* topbar 之下:侧栏 + 对话区并排,侧栏展开时把对话区推开 */
-.chat-body { flex: 1; min-height: 0; display: flex; position: relative; }
-.chat-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* 会话列表在全局侧栏,这里只剩对话区 */
+.chat-main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 </style>

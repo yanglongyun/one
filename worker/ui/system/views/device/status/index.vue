@@ -1,5 +1,5 @@
 <script setup>
-// 状态 · 晴空软糖皮肤(demo device-status.html)。
+// 状态(demo device-status.html)。
 // 数据逻辑不变:status.request / status.result 轮询(5s),字段 cpu/mem/disk/host/network。
 // sparkline 历史用最近 N 次采样在前端积累。
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -213,8 +213,8 @@ watch(dev, () => { snap.value = null; cpuHist.value = []; request(); });
 .spark { width: 100%; height: 44px; margin-top: 10px; }
 .bar { height: 10px; border-radius: 99px; background: var(--well); overflow: hidden; margin-top: 12px; }
 .bar i { display: block; height: 100%; border-radius: 99px; box-shadow: var(--gloss); transition: width .5s var(--ease); }
-.bar-mem i { background: linear-gradient(90deg, #9d8bfa, #7761ef); }
-.bar-disk i { background: linear-gradient(90deg, var(--accent-start), var(--candy-deep)); }
+.bar-mem i { background: #8a76f0; }
+.bar-disk i { background: var(--candy); }
 
 /* 网络卡:接口行 */
 .net-row { display: flex; align-items: center; gap: 8px; min-width: 0; }

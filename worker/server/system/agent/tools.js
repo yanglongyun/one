@@ -28,12 +28,32 @@ export const tools = [
             },
         },
     },
+    {
+        type: 'function',
+        function: {
+            name: 'one_manage',
+            description: '通过正式业务逻辑创建或修改 one 的记忆、笔记、目标、日程和任务。不要用 SQL 写系统表。',
+            parameters: {
+                type: 'object',
+                properties: {
+                    action: {
+                        type: 'string',
+                        enum: ['memory_save', 'memory_delete', 'note_save', 'note_delete', 'goal_save', 'goal_delete', 'schedule_save', 'schedule_delete', 'task_create'],
+                    },
+                    data: { type: 'object', description: '业务字段。修改或删除已有记录时带 id。' },
+                    summary: SUMMARY,
+                },
+                required: ['action', 'data', 'summary'],
+            },
+        },
+    },
+
     // ───────── 云端数据 ─────────
     {
         type: 'function',
         function: {
             name: 'sql',
-            description: '查询云端数据，或建表/读写你自己的 data_* 数据表。平台系统表对你只读。',
+            description: '查询云端数据。系统表只能由 one_manage 的正式业务接口修改。',
             parameters: {
                 type: 'object',
                 properties: {

@@ -20,7 +20,6 @@ export const useChatStore = defineStore('chat', () => {
     const chats = ref([]);
     const chatNextCursor = ref('');
     const loadingChats = ref(false);
-    const panelOpen = ref(false); // 会话侧栏(topbar 之下,推开对话区)
     const currentId = ref('');
     const currentChat = computed(() => chats.value.find((c) => c.id === currentId.value) || null);
 
@@ -74,7 +73,7 @@ export const useChatStore = defineStore('chat', () => {
             aborting.value = false;
             const next = chats.value[0]?.id;
             if (next) await switchChat(next);
-            else await createChat();
+            else createChat();
         });
     }
 
@@ -120,11 +119,7 @@ export const useChatStore = defineStore('chat', () => {
         await loadChats();
         let id = loadId();
         if (!id || !chats.value.some((c) => c.id === id)) id = chats.value[0]?.id || '';
-        if (!id) {
-            const d = await api.post('/api/chats', {}).catch(() => null);
-            if (d?.chat) { chats.value = [d.chat, ...chats.value]; id = d.chat.id; }
-        }
-        if (!id) return;
+        if (!id) { createChat(); return; } // 一条会话都没有:进空白草稿,不落库
         currentId.value = id;
         saveId(id);
         rebuildStream();
@@ -166,13 +161,21 @@ export const useChatStore = defineStore('chat', () => {
         await refresh();
     }
 
-    async function createChat() {
-        const d = await api.post('/api/chats', {}).catch(() => null);
-        if (!d?.chat) return null;
-        chats.value = [d.chat, ...chats.value.filter((c) => c.id !== d.chat.id)];
-        loadChats().catch(() => {});
-        await switchChat(d.chat.id);
-        return d.chat;
+    // 新对话 = 本地空白草稿,不落库不进历史;首条消息发出时(send)才真正建会话
+    function createChat() {
+        if (busy.value) abort();
+        currentId.value = '';
+        saveId('');
+        messages.value = [];
+        ready.value = true;
+        hasMore.value = false;
+        oldestId = 0;
+        lastSig = '';
+        busy.value = false;
+        aborting.value = false;
+        stream?.resetStreaming();
+        stream = null;
+        viewSeq.value++;
     }
 
     async function togglePin(id) {
@@ -192,18 +195,11 @@ export const useChatStore = defineStore('chat', () => {
         if (!removed?.ok) return false;
         await loadChats();
         if (id !== currentId.value) return true;
-        // 删的是当前会话:切到列表第一条;列表空了就新建一条
+        // 删的是当前会话:切到列表第一条;列表空了就进空白草稿
         currentId.value = ''; // 保证 switchChat 不被同 id 短路
         const next = chats.value[0]?.id;
-        if (next) {
-            await switchChat(next);
-        } else {
-            const d = await api.post('/api/chats', {}).catch(() => null);
-            if (d?.chat) {
-                chats.value = [d.chat];
-                await switchChat(d.chat.id);
-            }
-        }
+        if (next) await switchChat(next);
+        else createChat();
         return true;
     }
 
@@ -226,7 +222,7 @@ export const useChatStore = defineStore('chat', () => {
 
     async function send(text, retryRow = null) {
         const content = (text || '').trim();
-        if (!content || busy.value || !currentId.value) return;
+        if (!content || busy.value) return;
         const row = retryRow || pushRow({
             role: 'user', _key: mkKey('user'), content,
             clientId: crypto.randomUUID(), sending: true, failed: false,
@@ -238,6 +234,21 @@ export const useChatStore = defineStore('chat', () => {
         aborting.value = false;
         viewSeq.value++;
         bumpStream();
+        // 空白草稿的首条消息:此刻才真正建会话
+        if (!currentId.value) {
+            const d = await api.post('/api/chats', {}).catch(() => null);
+            if (!d?.chat) {
+                row.sending = false;
+                row.failed = true;
+                busy.value = false;
+                bumpStream();
+                return;
+            }
+            chats.value = [d.chat, ...chats.value.filter((c) => c.id !== d.chat.id)];
+            currentId.value = d.chat.id;
+            saveId(d.chat.id);
+            rebuildStream();
+        }
         const sent = ws.sendMsg({
             type: 'chat.input', threadId: currentId.value, text: content,
             clientId: row.clientId,
@@ -264,7 +275,6 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     return {
-        panelOpen,
         chats, currentId, currentChat, chatNextCursor, loadingChats,
         messages, busy, aborting, ready,
         streamTick, viewSeq, hasMore, loadingOlder,

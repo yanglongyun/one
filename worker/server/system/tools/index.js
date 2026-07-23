@@ -24,5 +24,5 @@ async function executeTool(call, ctx) {
 }
 
 export function isCloudTool(name) {
-    return ['fetch', 'sql'].includes(name);
+    return ['fetch', 'sql', 'one_manage'].includes(name);
 }

@@ -15,9 +15,11 @@ credentials as real secrets and only ever point clients at a deployment you own.
 - **A password is required before use.** On a fresh deploy the worker issues no
   tokens and accepts no device connections until you set an access password on
   first open. This closes the "public URL, not yet locked down" window.
-- **The assistant can write to its own tables.** The `sql` tool may create and
-  modify tables whose names start with `data_`. Platform system tables stay
-  read-only to it and can only be changed through the regular business APIs.
+- **The assistant reads with SQL, writes through business APIs.** The `sql` tool
+  is read-only (`SELECT` only); all writes to system data (memories, notes,
+  goals, schedules, tasks) go through the `one_manage` business actions. Apps are
+  native code shipped in this repository — nothing executable is stored in the
+  database.
 
 ## Secrets
 

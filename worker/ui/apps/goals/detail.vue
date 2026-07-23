@@ -1,5 +1,5 @@
 <script setup>
-// 目标详情(晴空软糖):目标卡(状态四态 seg)+ 编辑弹窗 + 推进记录(按 origin 过滤任务)。
+// 目标详情:目标卡(状态四态 seg)+ 编辑弹窗 + 推进记录(按 origin 过滤任务)。
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useGoalsStore } from './store';
@@ -139,7 +139,7 @@ async function save() {
 }
 async function del() {
     const g = goal.value; if (!g) return;
-    if (!confirm(`删除目标「${g.title}」?`)) return;
+    if (!(await confirmDialog({ title: '删除目标', message: `删除目标「${g.title}」?`, confirmText: '删除', danger: true }))) return;
     await goals.remove(g.id);
     router.push('/goals');
 }

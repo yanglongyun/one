@@ -7,6 +7,7 @@ import schedules from './schedules/api.js';
 import goals from './goals/api.js';
 import settings from './settings/api.js';
 import memories from './memories/api.js';
+import notes from './notes/api.js';
 import chats from './chats/api.js';
 
 export const APPS = [
@@ -15,6 +16,7 @@ export const APPS = [
     { name: 'schedules', label: '日程', icon: '⏰', api: schedules, nav: false },
     { name: 'goals', label: '目标', icon: '🎯', api: goals, nav: false },
     { name: 'memories', label: '记忆', icon: '🧠', api: memories, nav: false },
+    { name: 'notes', label: '笔记', icon: '📝', api: notes, nav: false },
     { name: 'settings', label: '设置', icon: '⚙️', api: settings, nav: false },
     { name: 'chats', label: '会话', icon: '💬', api: chats, nav: false },
 ];

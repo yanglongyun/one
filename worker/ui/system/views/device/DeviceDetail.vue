@@ -100,7 +100,7 @@ function openNative() {
                 <!-- 电脑能力入口(按能力显示) -->
                 <div v-if="hasFiles || hasStatus || hasTerminal" class="entry-grid">
                     <router-link v-if="hasTerminal" class="card hoverable entry" :to="`/devices/${encodeURIComponent(name)}/terminal`">
-                        <span class="e-ico" style="--tile-glow:rgba(119,97,239,.45);background:linear-gradient(150deg,#9d8bfa,#7761ef)">
+                        <span class="e-ico" style="background:#8a76f0">
                             <Icon name="terminal" style="width:18px;height:18px;color:var(--on-accent)" />
                         </span>
                         <span>
@@ -110,7 +110,7 @@ function openNative() {
                         <span class="go"><Icon name="back" style="width:15px;height:15px" /></span>
                     </router-link>
                     <router-link v-if="hasFiles" class="card hoverable entry" :to="`/devices/${encodeURIComponent(name)}/files`">
-                        <span class="e-ico" style="--tile-glow:rgba(243,138,29,.45);background:linear-gradient(150deg,#ffb648,#f38a1d)">
+                        <span class="e-ico" style="background:#ec9d31">
                             <Icon name="folder" style="width:18px;height:18px;color:var(--on-accent)" />
                         </span>
                         <span>
@@ -120,7 +120,7 @@ function openNative() {
                         <span class="go"><Icon name="back" style="width:15px;height:15px" /></span>
                     </router-link>
                     <router-link v-if="hasStatus" class="card hoverable entry" :to="`/devices/${encodeURIComponent(name)}/status`">
-                        <span class="e-ico" style="--tile-glow:rgba(47,136,232,.45);background:linear-gradient(150deg,#61b3fa,#2f88e8)">
+                        <span class="e-ico" style="background:#4597ec">
                             <Icon name="gauge" style="width:18px;height:18px;color:var(--on-accent)" />
                         </span>
                         <span>
@@ -155,8 +155,7 @@ function openNative() {
 
 .entry-grid { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .entry { display: flex; align-items: center; gap: 12px; padding: 14px 16px; text-decoration: none; color: inherit; }
-.entry .e-ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: var(--on-accent); flex-shrink: 0;
-    box-shadow: var(--gloss), 0 4px 10px -3px var(--tile-glow, rgba(48,88,140,.35)); }
+.entry .e-ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: var(--on-accent); flex-shrink: 0; }
 .entry .e-title { font-size: 13.5px; font-weight: 700; }
 .entry .e-sub { font-size: 11.5px; color: var(--ink-3); font-weight: 500; margin-top: 2px; }
 .entry .go { margin-left: auto; width: 15px; height: 15px; color: var(--ink-4); transform: scaleX(-1); flex-shrink: 0; }

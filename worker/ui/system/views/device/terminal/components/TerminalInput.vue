@@ -107,6 +107,6 @@ function runSnippet(item) {
 .terminal-key-toggle { color: var(--ink-3); background: var(--well); }
 .terminal-key-toggle:hover, .terminal-key-toggle.on { color: var(--candy-deep); }
 .terminal-key-toggle .o-icon, .terminal-send .o-icon { width: 17px; height: 17px; }
-.terminal-send { color: var(--on-accent); background: linear-gradient(160deg, var(--accent-start), var(--candy-deep)); box-shadow: var(--gloss), 0 4px 10px -3px rgba(43,134,228,.5); }
+.terminal-send { color: var(--on-accent); background: var(--candy); }
 .terminal-send:disabled { opacity: .4; box-shadow: none; }
 </style>

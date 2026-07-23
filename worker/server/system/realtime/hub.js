@@ -169,7 +169,7 @@ export class OneHub extends DurableObject {
         this.dispatch.toWeb(message);
     }
 
-    // 开一个新 task(状态 pending)并立即起第一轮。origin: ai/schedule/goal/app。
+    // 开一个新 task(状态 pending)并立即起第一轮。origin: ai/schedule/goal。
     async spawnTask({ title, prompt, origin = 'ai', originId = null, responseFormat = null }) {
         return createTask(this.hub(), { title, prompt, origin, originId, responseFormat });
     }
@@ -216,7 +216,7 @@ export class OneHub extends DurableObject {
             executors: () => dispatch.executors(),
             // 等设备回某次工具调用的结果(按 LLM tool call 的 id 关联)
             awaitResult: (threadId, id, signal) => pending.create(threadId, id, 5 * 60 * 1000, signal).promise,
-            // 开新 task 并行跑,供 RPC/app bridge 等入口复用。
+            // 开新 task 并行跑,供 RPC 等入口复用。
             spawnTask: (opts) => this.spawnTask(opts),
             startTaskTurn: (threadId, input) => this.startTaskTurn(threadId, input),
             reconcileAlarm: () => this.reconcileAlarm(),

@@ -139,7 +139,7 @@ watch(() => route.params.id, (id) => { if (id) load(id); });
 </template>
 
 <style>
-/* 任务详情页(晴空软糖)—— 页面级样式,组件类走全局 style.css */
+/* 任务详情页—— 页面级样式,组件类走全局 style.css */
 .overview { padding: 18px 20px; }
 .overview .origin-badge { display: inline-flex; align-items: center; gap: 4px; }
 .overview .origin-badge a { color: var(--candy-deep); text-decoration: none; font-weight: 600; }

@@ -8,7 +8,7 @@ export async function systemPrompt({ db, devices = [], extra = '', threadId = nu
         ? ['当前在线设备(调设备工具时用 device 参数填设备名指明在哪台):']
             .concat(devices.map((device) => `  · ${device.name}(${DEVICE_KIND_LABEL[device.kind] || device.kind};能力:${(device.caps || []).join('/') || '无'})`))
             .join('\n')
-        : '当前没有在线设备 —— 只能做纯云端操作(对话 / fetch / sql)。需要 shell/浏览器时请提示用户上线一台设备。';
+        : '当前没有在线设备 —— 只能做纯云端操作(对话/笔记/任务)。需要 shell/浏览器时请提示用户上线一台设备。';
 
     const roleSection = threadId
         ? [
@@ -25,7 +25,7 @@ export async function systemPrompt({ db, devices = [], extra = '', threadId = nu
         '',
         '你能做三类事:',
         '· 外部网络 —— fetch 云端直接抓网页、调 API,不需要任何设备在线。',
-        '· 云端数据 —— sql 查询平台系统数据;需要长期存结构化数据时,自己用 sql 建表读写,表名必须以 data_ 开头(平台系统表对你只读)。',
+        '· 云端数据 —— sql 查询系统数据;one_manage 按正式业务规则修改记忆、笔记、任务、日程和目标。',
         '· 设备能力 —— shell(在设备上跑命令)/ chrome_debugger(经 Chrome 扩展的 chrome.debugger 操作当前活动标签页)等,由对应设备执行。',
         '',
         deviceSection,
@@ -36,6 +36,11 @@ export async function systemPrompt({ db, devices = [], extra = '', threadId = nu
         '',
         '怎么做事:先做后说,要操作就调工具;危险或不可逆的事先确认;说简体中文,清楚、能落地。',
         '用户说停就停:听到"算了""不搞了""停""别弄了"等终止意图,立即停止一切工具调用,回一句确认,不要继续操作。',
+        '',
+        '持续学习与沉淀(重要):在对话中留意关于用户的长期信息,主动用 one_manage 写入记忆(visibility: must/star/stored),不必每次都问。',
+        '- 学到的稳定事实、偏好、习惯 → stored;需要经常参考的 → star;必须每轮都在场的核心信息(称呼、语言、底线约束)→ must。',
+        '- 被用户纠正的写法/做法:记下正确的那一版,避免重犯。被明确认可或夸奖的做法:记下,以后延续。',
+        '- 已存在的记忆有更新就 UPDATE 而不是重复插入;拿不准放哪一层时,先 stored,后续再按重要性升级。',
         '',
         threadId ? '' : await recentTasksPrompt(db),
         await memoryPrompt(db),

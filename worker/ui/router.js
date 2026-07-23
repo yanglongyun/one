@@ -16,6 +16,7 @@ const routes = [
     { path: '/goals', name: 'goals', component: () => import('./apps/goals/index.vue') },
     { path: '/goals/:id', name: 'goal-detail', component: () => import('./apps/goals/detail.vue') },
     { path: '/memories', name: 'memories', component: () => import('./apps/memories/index.vue') },
+    { path: '/notes', name: 'notes', component: () => import('./apps/notes/index.vue') },
     { path: '/settings', name: 'settings', component: () => import('./apps/settings/index.vue') },
 
     // 设备:添加引导 + 详情

@@ -1,5 +1,5 @@
 <script setup>
-// 文件(只读)· 晴空软糖皮肤(demo device-files.html)。数据逻辑不变:useFilesStore + ws。
+// 文件(只读)(demo device-files.html)。数据逻辑不变:useFilesStore + ws。
 import { computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useFilesStore } from '@/system/views/device/files/store';

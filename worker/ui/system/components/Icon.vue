@@ -1,5 +1,5 @@
 <script setup>
-// 内联 SVG 图标库(晴空软糖 · 圆头线条)。用法:<Icon name="chat" />
+// 内联 SVG 图标库(圆头线条)。用法:<Icon name="chat" />
 // 尺寸随容器:外层 span 100%,由父元素决定大小(如 .icon-btn svg / .tile svg 已有规则)。
 import { computed } from 'vue';
 

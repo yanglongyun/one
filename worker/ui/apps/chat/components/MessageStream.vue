@@ -201,14 +201,12 @@ watch(() => chat.viewSeq, () => {
     margin: 5px 0;
 }
 .msg-user .bubble {
-    background: linear-gradient(160deg, var(--accent-start), var(--candy-deep));
-    color: var(--on-accent);
-    border-radius: 20px 20px 6px 20px;
+    background: var(--well);
+    color: var(--ink);
+    border-radius: 18px;
     padding: 11px 15px;
     font-size: 13.5px;
     line-height: 1.75;
-    font-weight: 500;
-    box-shadow: var(--gloss), 0 8px 20px -6px rgba(43,134,228,.5);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }

@@ -3,6 +3,7 @@ import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTasksStore } from './store';
 import { statusOf, originOf } from './meta';
+import { confirmDialog } from '@/system/lib/confirm';
 import { fmtTime } from '@/system/lib/thread/format';
 import TopBar from '@/system/components/TopBar.vue';
 import Icon from '@/system/components/Icon.vue';
@@ -33,7 +34,7 @@ const pick = (value) => tasks.load(value);
 
 async function remove(t, event) {
     event.stopPropagation();
-    if (!confirm(`取消任务「${t.title || '未命名'}」? 执行记录会保留。`)) return;
+    if (!(await confirmDialog({ title: '取消任务', message: `取消任务「${t.title || '未命名'}」?执行记录会保留。`, danger: true }))) return;
     await tasks.remove(t.id);
 }
 
@@ -49,7 +50,7 @@ onMounted(() => { tasks.bind(); tasks.load(); });
 
 <template>
     <div class="app">
-        <TopBar emoji="⚡" title="任务" />
+        <TopBar title="任务" />
 
         <main class="page">
             <div class="page-inner">
@@ -100,7 +101,7 @@ onMounted(() => { tasks.bind(); tasks.load(); });
 </template>
 
 <style>
-/* 任务列表页(晴空软糖)—— 页面级样式,组件类走全局 style.css */
+/* 任务列表页—— 页面级样式,组件类走全局 style.css */
 .task-card { display: flex; gap: 12px; padding: 15px 16px 13px; }
 .task-card .dot { margin-top: 6px; }
 .task-title { font-size: 14px; font-weight: 700; }

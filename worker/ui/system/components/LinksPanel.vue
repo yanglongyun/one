@@ -1,10 +1,13 @@
 <script setup>
-// 设备面板:顶栏闪电按钮(带在线数 badge)→ 设备列表弹层。
+// 设备面板:闪电按钮(带在线数 badge)→ 设备列表弹层。挂在侧栏品牌行。
 // 整卡可点进设备详情 /devices/<name>;底部虚线「添加设备」→ /devices/new。
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useWsStore } from '@/system/stores/ws';
 import Icon from './Icon.vue';
+
+// 弹层贴按钮哪一侧展开:right(默认,原顶栏位)/ left(侧栏位,往右铺)
+const props = defineProps({ align: { type: String, default: 'right' } });
 
 // 本机客户端桥(桌面 Tauri / 安卓 OneNative):存在即显示「本机设置」——不依赖设备是否在线,是配置错误时的逃生口
 const hasNative = Boolean(window.__TAURI__ || window.OneNative);
@@ -27,7 +30,9 @@ const KIND_LABEL = { desktop: '桌面', android: '安卓', browser: '浏览器' 
 function toggle() {
     if (!open.value && btnRef.value) {
         const r = btnRef.value.getBoundingClientRect();
-        popStyle.value = { top: `${r.bottom + 10}px`, right: `${window.innerWidth - r.right}px` };
+        popStyle.value = props.align === 'left'
+            ? { top: `${r.bottom + 10}px`, left: `${r.left}px` }
+            : { top: `${r.bottom + 10}px`, right: `${window.innerWidth - r.right}px` };
     }
     open.value = !open.value;
 }

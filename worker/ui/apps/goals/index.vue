@@ -1,5 +1,5 @@
 <script setup>
-// 目标列表(晴空软糖):标题 + 状态 pill + 一行说明,整卡点进详情;新建走弹窗。
+// 目标列表:标题 + 状态 pill + 一行说明,整卡点进详情;新建走弹窗。
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useGoalsStore } from './store';
@@ -32,7 +32,7 @@ onMounted(() => { goals.bind(); goals.load(); });
 
 <template>
     <div class="app">
-        <TopBar emoji="🎯" title="目标">
+        <TopBar title="目标">
             <template #actions>
                 <button class="btn btn-primary" @click="openNew"><Icon name="plus" style="width:15px;height:15px" />新建</button>
             </template>

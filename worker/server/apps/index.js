@@ -1,5 +1,5 @@
 // api 区路由:标准 REST。/api/<resource>/<id?>,按 HTTP 方法分发。
-//   GET /api                  → 应用清单(前端导航派生)
+//   GET /api → 应用清单(前端导航派生)
 import { byName, manifest } from './registry.js';
 
 export default async function appsRoutes(request, ctx) {
