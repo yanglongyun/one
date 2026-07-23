@@ -2,11 +2,8 @@
 //   /api/identity/...           → 身份/初始化
 //   /api/realtime/ws            → 实时通道(WS)
 //   /api/...                    → 云端数据应用 REST
-//   /api/apps/:slug/runtime/... → 自定义应用运行资源
-//   /api/apps/sdk.js            → 自定义应用 SDK
 //   其余                        → 前端静态资源(ui/dist)
 import appsRoutes from './apps/index.js';
-import { serveApp, SDK_SOURCE } from './apps/app/serve.js';
 import identityRoutes from './system/identity/api.js';
 import { verify } from './system/identity/service.js';
 import { releaseManifest, serveDownload } from './system/downloads.js';
@@ -51,14 +48,6 @@ export default {
         // 实时:单用户 → 唯一 hub 实例(WS 在 DO 内验 ?token= / ?password=)
         if (resource === 'realtime') {
             return env.HUB.get(env.HUB.idFromName('one')).fetch(request);
-        }
-
-        // 自定义应用运行时:/api/apps/<slug>/runtime(页面/js/css)+ /api/apps/sdk.js(能力 SDK)
-        if (resource === 'apps' && parts[3] === 'runtime') {
-            return serveApp(env.DB, url.pathname);
-        }
-        if (url.pathname === '/api/apps/sdk.js') {
-            return new Response(SDK_SOURCE, { headers: { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' } });
         }
 
         const hub = env.HUB.get(env.HUB.idFromName('one'));

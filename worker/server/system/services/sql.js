@@ -103,7 +103,7 @@ function mutationTarget(words, statement) {
             if (words[index] !== 'on') throw new Error('无效 CREATE INDEX');
             return words[index + 1];
         }
-        throw new Error('只允许创建 app_* 表和索引');
+        throw new Error('只允许创建 data_* 表和索引');
     }
     throw new Error('不支持的 SQL 写操作');
 }
@@ -116,10 +116,10 @@ export function classifySql(query) {
     const statement = mainStatement(words);
     if (statement.keyword === 'select') return 'read';
     const target = mutationTarget(words, statement);
-    if (!target?.startsWith('app_')) throw new Error('SQL 写操作只允许 app_* 小应用数据表');
+    if (!target?.startsWith('data_')) throw new Error('SQL 写操作只允许 data_* 自建数据表');
     for (let index = 0; index < words.length; index++) {
-        if (words[index] === 'references' && !words[index + 1]?.startsWith('app_')) {
-            throw new Error('小应用外键只能引用 app_* 数据表');
+        if (words[index] === 'references' && !words[index + 1]?.startsWith('data_')) {
+            throw new Error('自建表的外键只能引用 data_* 数据表');
         }
     }
     return 'write';

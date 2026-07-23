@@ -30,7 +30,6 @@ cd worker/ui && npm install && npm run dev
 - **改动小而聚焦**:一个 PR 只做一件事,便于 review。
 - **不要提交机密**:`wrangler.jsonc`、`.dev.vars`、`config.json`、数据库备份、任何密钥都已 gitignore,别绕过。
 - **数据库无迁移脚本**:`worker/schema.sql` 即全量真相;改表结构时同步更新它。
-- 改了 `worker/seeds/<slug>/` 里的种子应用源码后,跑 `npm run seed:build` 重新生成 `seeds/apps.sql`。
 
 ## 安全问题
 

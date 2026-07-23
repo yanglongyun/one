@@ -5,7 +5,6 @@
     "type": "module",
     "scripts": {
         "build:ui": "npm --prefix ui run build",
-        "seed:build": "node seeds/build.mjs",
         "test": "node --test test/*.test.js",
         "dev": "wrangler dev --port 9506",
         "predeploy": "npm run build:ui",

@@ -15,12 +15,9 @@ credentials as real secrets and only ever point clients at a deployment you own.
 - **A password is required before use.** On a fresh deploy the worker issues no
   tokens and accepts no device connections until you set an access password on
   first open. This closes the "public URL, not yet locked down" window.
-- **Custom apps run with full privileges.** AI-generated / custom apps are served
-  same-origin and their SDK (`window.one`) can run arbitrary SQL and proxy
-  arbitrary outbound requests. A malicious or prompt-injected app can therefore
-  read and exfiltrate whatever the account can (including stored model API keys).
-  Only run apps you trust, and treat app code as part of your trusted computing
-  base.
+- **The assistant can write to its own tables.** The `sql` tool may create and
+  modify tables whose names start with `data_`. Platform system tables stay
+  read-only to it and can only be changed through the regular business APIs.
 
 ## Secrets
 

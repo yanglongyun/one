@@ -96,8 +96,6 @@ CREATE TABLE goals (
 );
 CREATE INDEX idx_goals_due ON goals(status, next_run_at);
 
--- 笔记不再是系统表:已改为「笔记」种子小应用,数据表 app_notes 由该应用运行时自建(见 seeds/notes)。
-
 -- ═══════════ 记忆(长期用户上下文;时间线走呈现层,created_at/updated_at 已够排)═══════════
 CREATE TABLE memories (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -110,27 +108,4 @@ CREATE TABLE memories (
 );
 CREATE INDEX idx_memories_visibility ON memories(visibility, id DESC);
 
--- ═══════════ 自定义应用(AI 在线创造:纯前端 + 能力桥)═══════════
--- 一个应用 = apps 一行(元信息)+ codes 若干行(index.html/index.js/index.css,按 version 只追加不覆盖)。
--- 应用的数据表由 AI 用 sql 工具自建,表名必须使用 app_ 前缀。
-CREATE TABLE apps (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  slug        TEXT NOT NULL UNIQUE,            -- URL 段:/apps/<slug>
-  name        TEXT NOT NULL DEFAULT '',
-  icon        TEXT NOT NULL DEFAULT '',        -- 单个字符/emoji,九宫格瓷砖上显示
-  color       TEXT NOT NULL DEFAULT 'blue',    -- 瓷砖配色键:blue/orange/purple/red/pink/green/teal/slate
-  description TEXT NOT NULL DEFAULT '',
-  created_at  INTEGER NOT NULL,
-  updated_at  INTEGER NOT NULL
-);
-
-CREATE TABLE codes (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  app_id     INTEGER NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
-  filename   TEXT NOT NULL,                    -- index.html / index.js / index.css / index.sql
-  content    TEXT NOT NULL DEFAULT '',
-  version    INTEGER NOT NULL DEFAULT 1,       -- 同一 filename 递增,最新版生效;旧版留作回滚
-  created_at INTEGER NOT NULL
-);
-CREATE INDEX idx_codes_latest ON codes(app_id, filename, version DESC);
-CREATE UNIQUE INDEX idx_codes_version ON codes(app_id, filename, version);
+-- AI 自建的数据表使用 data_ 前缀,由 sql 工具在运行时创建 —— 不在本文件里声明。

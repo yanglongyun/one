@@ -13,7 +13,6 @@ worker/              云核(部署到 Cloudflare)
   server/            后端:AI 内核 + apps(云端数据应用)+ 鉴权 + D1
   ui/                前端(Vue 3),构建产物在 ui/dist
   schema.sql         数据库全量结构 —— 唯一真相,无迁移脚本
-  seeds/             出厂小应用源码;seeds/build.mjs 生成 seeds/apps.sql
   wrangler.jsonc     部署配置(已 gitignore;从 wrangler.example.jsonc 复制)
 clients/
   tauri/             桌面(Rust + WebView),含电脑控制「手」
@@ -34,7 +33,6 @@ cp wrangler.example.jsonc wrangler.jsonc             # 待填 account_id / datab
 npx wrangler d1 create one                           # 把输出的 database_id 连同 account_id 填进 wrangler.jsonc
 npx wrangler r2 bucket create one                    # 创建安装包下载桶
 npx wrangler d1 execute one --remote --file=schema.sql
-npx wrangler d1 execute one --remote --file=seeds/apps.sql   # 出厂小应用(可选)
 
 npx wrangler secret put AUTH_SECRET                  # 必填:值用 `openssl rand -hex 32` 生成
 
@@ -55,8 +53,7 @@ npm run deploy
 - **不写兼容层**:协议、字段或工具名变更时同步修改所有生产端并发布新版本；只保留唯一现行实现。禁止旧名称别名、双路径、历史字段兜底和按版本分支，旧客户端直接淘汰并要求升级。
 - **机密绝不入库**:`wrangler.jsonc` / `.dev.vars` / `config.json` / 数据库备份 / 任何 key 都已 gitignore,别绕过。`AUTH_SECRET` 只走 `wrangler secret`。
 - **数据库无迁移**:`worker/schema.sql` 是唯一真相,改表结构就直接改它,不写迁移脚本。升级前用 `npm run db:backup` 导出备份。
-- **种子小应用是生成物**:改 `worker/seeds/<slug>/` 源码后,必须 `npm run seed:build` 重新生成 `seeds/apps.sql`,别手改 apps.sql。
-- **小应用四文件规范**:每个应用 = `index.html` + `index.js` + `index.css` + `index.sql`(建表 DDL)。平台打开应用时**先跑 `index.sql`(幂等建表)再加载 `index.js`**;数据表用 `app_` 前缀;不要在 JS 里写建表代码,也不要自己在 html 里引 `index.js`(平台会注入)。
+- **AI 自建表用 `data_` 前缀**:`sql` 工具可读平台数据、可建表读写自己的 `data_*` 表;平台系统表对 AI 只读,只能经前端 REST 业务接口修改,别放宽这个边界。
 - **路由**:后端能力全在 `/api/*`;`wrangler.jsonc` 的 `run_worker_first` 就是 `["/api/*"]`,其余路径交给前端 SPA。
 - **风格随上下文**:注释以简体中文为主,命名/习惯向周围代码看齐;一次改动小而聚焦。
 

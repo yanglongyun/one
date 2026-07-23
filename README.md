@@ -12,11 +12,11 @@
 
 ---
 
-## 它能做三件事
+## 它能做两件事
 
-|  🖐️ 控制你的设备  |  ⏰ 定时任务 & 目标  |  🧩 现做小应用  |
-| :-- | :-- | :-- |
-| 让 AI 在你的**电脑 / 手机 / 浏览器**上真实操作:跑命令、点按屏幕、开网页、读文件。 | 交给它「每天早八点…」的**日程**,或「持续帮我盯着…」的**目标**,到点自己醒来干活。 | 说一句「帮我做个记账本」,它**当场写出**一个能用的小应用,进九宫格随时打开。 |
+|  🖐️ 控制你的设备  |  ⏰ 定时任务 & 目标  |
+| :-- | :-- |
+| 让 AI 在你的**电脑 / 手机 / 浏览器**上真实操作:跑命令、点按屏幕、开网页、读文件。 | 交给它「每天早八点…」的**日程**,或「持续帮我盯着…」的**目标**,到点自己醒来干活。 |
 
 > 一个大脑,管住你所有的设备和日常。
 
@@ -37,7 +37,6 @@ cp wrangler.example.jsonc wrangler.jsonc                      # 填 account_id /
 npx wrangler d1 create one                                    # 把拿到的 database_id 填回去
 npx wrangler r2 bucket create one                             # 安装包下载桶
 npx wrangler d1 execute one --remote --file=schema.sql
-npx wrangler d1 execute one --remote --file=seeds/apps.sql    # 出厂小应用(可选)
 npx wrangler secret put AUTH_SECRET                           # 必填:openssl rand -hex 32
 npm run deploy
 ```
@@ -57,25 +56,16 @@ npm run deploy
 **云端为核心,客户端是壳和手。** 数据全在云端、网页随时访问;桌面 / 安卓 / 浏览器各提供一只手,听云端大脑差遣。
 
 ```
-worker/      云核(部署到 Cloudflare):ui/ 前端 + server/ 后端(AI 内核 + apps + 鉴权 + D1)
+worker/      云核(部署到 Cloudflare):ui/ 前端 + server/ 后端(AI 内核 + 数据应用 + 鉴权 + D1)
 clients/     各端的「壳 + 手」:tauri/ 桌面 · android/ 安卓 · browser/ 浏览器扩展
 ```
 
 <details>
-<summary><b>自定义应用:AI 在线造,你随手用</b></summary>
+<summary><b>数据自己长:AI 建表、AI 记账</b></summary>
 
 <br/>
 
-对助理说「帮我做一个记账本」,它会通过正式的小应用接口写入元信息和四个应用文件(`index.html/js/css/sql`),从九宫格或 `/apps/<slug>` 进入。
-
-应用页面里的 `window.one`(由 `/api/apps/sdk.js` 提供)有四个能力方法:
-
-| 方法 | 作用 |
-|---|---|
-| `one.sql(query, params?)` | 查询数据或读写 `app_*` 小应用表 |
-| `one.proxy(url, opts?)` | 服务端代发外部请求,免跨域 |
-| `one.llm(prompt, {system}?)` | 主模型一次性推理,返回文本 |
-| `one.agent(prompt, opts?)` | 开一个任务走系统 agent 内核,默认等跑完返回结果 |
+助理的 `sql` 工具可以查平台数据,也可以自己建表读写 —— 表名以 `data_` 开头即可(平台系统表只能走正式业务接口改)。要它长期记着什么结构化的东西,直接说,它自己开表。
 
 数据库没有迁移脚本:`worker/schema.sql` 即全量真相,升级前用 `npm run db:backup` 导出备份。
 

@@ -18,10 +18,6 @@ const routes = [
     { path: '/memories', name: 'memories', component: () => import('./apps/memories/index.vue') },
     { path: '/settings', name: 'settings', component: () => import('./apps/settings/index.vue') },
 
-    // 自定义应用(AI 生成的板块):运行页 + 创建引导
-    { path: '/apps/new', name: 'app-create', component: () => import('./apps/app/create.vue') },
-    { path: '/apps/:slug', name: 'app-run', component: () => import('./apps/app/index.vue') },
-
     // 设备:添加引导 + 详情
     { path: '/devices/new', name: 'device-add', component: () => import('./system/views/device/DeviceAdd.vue') },
     { path: '/devices/:name', name: 'device-detail', component: () => import('./system/views/device/DeviceDetail.vue') },

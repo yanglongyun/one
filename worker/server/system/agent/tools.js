@@ -28,32 +28,12 @@ export const tools = [
             },
         },
     },
-    {
-        type: 'function',
-        function: {
-            name: 'one_manage',
-            description: '通过正式业务逻辑创建或修改 one 的记忆、目标、日程、任务和小应用。不要用 SQL 写系统表。app_save 的 data.files 可一次写 index.html、index.js、index.css、index.sql。',
-            parameters: {
-                type: 'object',
-                properties: {
-                    action: {
-                        type: 'string',
-                        enum: ['memory_save', 'memory_delete', 'goal_save', 'goal_delete', 'schedule_save', 'schedule_delete', 'task_create', 'app_save', 'app_delete'],
-                    },
-                    data: { type: 'object', description: '业务字段。修改或删除已有记录时带 id;应用使用 slug,代码放 files 对象。' },
-                    summary: SUMMARY,
-                },
-                required: ['action', 'data', 'summary'],
-            },
-        },
-    },
-
     // ───────── 云端数据 ─────────
     {
         type: 'function',
         function: {
             name: 'sql',
-            description: '查询云端数据，或写入 app_* 小应用数据表。平台系统表只能由正式业务接口修改。',
+            description: '查询云端数据，或建表/读写你自己的 data_* 数据表。平台系统表对你只读。',
             parameters: {
                 type: 'object',
                 properties: {

@@ -8,7 +8,6 @@ import goals from './goals/api.js';
 import settings from './settings/api.js';
 import memories from './memories/api.js';
 import chats from './chats/api.js';
-import apps from './app/api.js';
 
 export const APPS = [
     { name: 'messages', label: '对话', icon: '💬', api: messages, nav: false },
@@ -18,7 +17,6 @@ export const APPS = [
     { name: 'memories', label: '记忆', icon: '🧠', api: memories, nav: false },
     { name: 'settings', label: '设置', icon: '⚙️', api: settings, nav: false },
     { name: 'chats', label: '会话', icon: '💬', api: chats, nav: false },
-    { name: 'apps', label: '应用', icon: '🧩', api: apps, nav: false },
 ];
 
 export const byName = Object.fromEntries(APPS.map((a) => [a.name, a]));

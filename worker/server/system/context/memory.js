@@ -21,6 +21,6 @@ export async function memoryPrompt(db) {
         promptLines.push('星标记忆:无。');
     }
     promptLines.push(`普通记忆数量:${storedCount}。`);
-    promptLines.push('搜索或读取记忆时用 sql;新增、更新、删除记忆时用 one_manage,visibility 只能是 must/star/stored。');
+    promptLines.push('搜索或读取记忆时用 sql;记忆由用户在「记忆」页维护,对你只读。');
     return promptLines.join('\n');
 }

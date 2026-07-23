@@ -408,13 +408,11 @@ header, footer, button, [role="tab"] { -webkit-user-select: none; user-select: n
     font-size: 23px; line-height: 1;
     box-shadow: var(--shadow-s), var(--gloss);
 }
-.tile-ghost { background: transparent; border: 1.8px dashed var(--line); color: var(--ink-4); box-shadow: none; }
 .app-cell:hover .tile-emoji {
     background: var(--panel);
     font-size: 23px; line-height: 1;
     box-shadow: var(--shadow-s), var(--gloss);
 }
-.tile-ghost { border-color: var(--line); color: var(--ink-3); background: var(--panel); }
 
 /* ── 表单糖 ────────────────────────────────────────── */
 .field { display: flex; flex-direction: column; gap: 6px; }
