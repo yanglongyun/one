@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useMemoriesStore } from './store';
 import TopBar from '@/system/components/TopBar.vue';
 import Icon from '@/system/components/Icon.vue';
+import { confirmDialog } from '@/system/lib/confirm';
 
 const memories = useMemoriesStore();
 const search = ref('');

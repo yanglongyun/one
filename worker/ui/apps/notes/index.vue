@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useNotesStore } from './store';
 import TopBar from '@/system/components/TopBar.vue';
 import Icon from '@/system/components/Icon.vue';
+import { confirmDialog } from '@/system/lib/confirm';
 
 const notes = useNotesStore();
 const showModal = ref(false);

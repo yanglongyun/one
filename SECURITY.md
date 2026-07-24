@@ -15,11 +15,11 @@ credentials as real secrets and only ever point clients at a deployment you own.
 - **A password is required before use.** On a fresh deploy the worker issues no
   tokens and accepts no device connections until you set an access password on
   first open. This closes the "public URL, not yet locked down" window.
-- **The assistant reads with SQL, writes through business APIs.** The `sql` tool
-  is read-only (`SELECT` only); all writes to system data (memories, notes,
-  goals, schedules, tasks) go through the `one_manage` business actions. Apps are
-  native code shipped in this repository — nothing executable is stored in the
-  database.
+- **The assistant uses SQL for both reads and writes.** The `sql` tool can
+  execute single `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `PRAGMA`, and other
+  SQLite statements against the D1 database, including system data (memories,
+  notes, goals, schedules, tasks). Apps are native code shipped in this
+  repository — nothing executable is stored in the database.
 
 ## Secrets
 

@@ -53,6 +53,10 @@ export async function maybeCompact(hub, threadId, config, emit = () => {}) {
     try {
         let summary = '';
         let summaryTokens = 0;
+        // 链式摘要:把上一段摘要并入本次素材,新摘要完整接棒 —— 否则第二次压缩会丢掉第一段承载的早期信息
+        const priorSummary = latestSummary?.summary
+            ? `【既有摘要 —— 其中信息必须完整并入新摘要,不得丢失】\n${latestSummary.summary}\n\n═══ 以下为摘要之后的新消息 ═══\n\n`
+            : '';
         const modelStream = stream({
             apiUrl: config.apiUrl,
             apiKey: config.apiKey,
@@ -60,7 +64,7 @@ export async function maybeCompact(hub, threadId, config, emit = () => {}) {
             authMode: config.authMode,
             messages: [
                 { role: 'system', content: COMPACTION_SYSTEM },
-                { role: 'user', content: `请压缩以下聊天消息：\n\n${serializeMessagesForSummary(messagesToCompact)}` },
+                { role: 'user', content: `请压缩以下聊天上下文：\n\n${priorSummary}${serializeMessagesForSummary(messagesToCompact)}` },
             ],
             tools: [],
             responseFormat: undefined,

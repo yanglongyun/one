@@ -6,6 +6,7 @@ import { useSchedulesStore } from './store';
 import { api } from '@/system/api';
 import TopBar from '@/system/components/TopBar.vue';
 import Icon from '@/system/components/Icon.vue';
+import { confirmDialog } from '@/system/lib/confirm';
 
 const route = useRoute();
 const router = useRouter();

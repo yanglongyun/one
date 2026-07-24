@@ -58,20 +58,24 @@ function mainStatement(words) {
     throw new Error('无效 WITH 语句');
 }
 
-// sql 工具只读:系统表一律经 one_manage 的正式业务接口写。
 export function classifySql(query) {
     const words = tokens(query);
     const semicolons = words.reduce((count, word) => count + (word === ';' ? 1 : 0), 0);
     if (semicolons > 1 || (semicolons === 1 && words.at(-1) !== ';')) throw new Error('每次只能执行一条 SQL');
     if (words.at(-1) === ';') words.pop();
-    if (mainStatement(words) !== 'select') throw new Error('sql 只支持 SELECT 查询,写入走 one_manage');
-    return 'read';
+    const statement = mainStatement(words);
+    return statement === 'select' || statement === 'pragma' ? 'read' : 'write';
 }
 
 export async function executeSql(db, query, params = []) {
     const text = String(query || '').trim();
     if (!text) throw new Error('空查询');
-    classifySql(text);
-    const { results } = await db.prepare(text).bind(...(Array.isArray(params) ? params : [])).all();
-    return { rows: results, count: results.length };
+    const kind = classifySql(text);
+    const bound = db.prepare(text).bind(...(Array.isArray(params) ? params : []));
+    if (kind === 'read') {
+        const { results } = await bound.all();
+        return { rows: results, count: results.length };
+    }
+    const { success, meta } = await bound.run();
+    return { success, meta };
 }

@@ -136,10 +136,10 @@ watch(() => chat.viewSeq, () => {
                             </button>
                             <div v-show="block.message.reasoningOpen" class="think-body">{{ block.message.reasoning }}</div>
                         </div>
-                        <div v-if="block.message.content || block.message.streaming" class="bubble">
+                        <div v-if="block.message.content" class="bubble">
                             <div class="md" v-html="renderMd(block.message.content)"></div>
                         </div>
-                        <div v-if="block.message.streaming" class="msg-time" style="color:var(--run)">正在输出…</div>
+                        <div v-if="block.message.streaming && block.message.content" class="msg-time" style="color:var(--run)">正在输出…</div>
                     </div>
                 </div>
                 <span v-else-if="block.message.role === 'system'" class="sys-chip">{{ block.message.content }}<router-link
