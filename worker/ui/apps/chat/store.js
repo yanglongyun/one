@@ -126,7 +126,8 @@ export const useChatStore = defineStore('chat', () => {
         await refresh();
     }
 
-    async function refresh() {
+    // keepView=true 是"轮次结束后的对账刷新":原地换数据、不动用户视角(不强制回底)。
+    async function refresh({ keepView = false } = {}) {
         if (!currentId.value) return;
         const chatId = currentId.value;
         const d = await api.get(`/api/messages?chat=${encodeURIComponent(chatId)}&limit=${PAGE}`).catch(() => null);
@@ -138,9 +139,15 @@ export const useChatStore = defineStore('chat', () => {
         lastSig = sig;
         oldestId = rows[0]?.id || 0;
         hasMore.value = Boolean(d.hasMore);
-        messages.value = renderMessages(rows.map(parseBody));
+        const next = renderMessages(rows.map(parseBody));
+        // 同位置同角色/类型的行复用旧 _key:Vue 原地复用 DOM,不整屏重挂(不闪)
+        const prev = messages.value;
+        for (let i = 0; i < next.length && i < prev.length; i++) {
+            if (next[i].role === prev[i].role && next[i].type === prev[i].type) next[i]._key = prev[i]._key;
+        }
+        messages.value = next;
         ready.value = true;
-        viewSeq.value++;
+        if (!keepView) viewSeq.value++;
     }
 
     // 切换会话:流式中先 abort(简单可靠 —— 避免旧会话残留 busy 态锁住输入框,

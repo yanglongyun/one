@@ -22,7 +22,10 @@ function setupThreadStream({ threadId = null, messages, busy, pushRow, refresh, 
     function closeStreaming() {
         if (!streamingKey) return null;
         const row = messages.value.find((item) => item._key === streamingKey);
-        if (row) row.streaming = false;
+        if (row) {
+            row.streaming = false;
+            row.reasoningOpen = false; // 只思考没正文的轮次(如思考后直接调工具)也折起
+        }
         streamingKey = '';
         return row;
     }
@@ -36,6 +39,8 @@ function setupThreadStream({ threadId = null, messages, busy, pushRow, refresh, 
             role: 'assistant',
             _key: mkKey('assistant'),
             content: '',
+            reasoning: '',
+            reasoningOpen: false,
             usage: null,
             streaming: true,
         });
@@ -67,7 +72,7 @@ function setupThreadStream({ threadId = null, messages, busy, pushRow, refresh, 
         if ((event.threadId || null) !== threadId) return; // 不是这条线的事件,交给认领它的那个 store
         // 同一会话可能被多个标签页打开。带 clientId 的流只属于发起它的标签页。
         if (event.clientId && !clientRow(event.clientId)) {
-            if (event.type === 'chat.done') refresh?.();
+            if (event.type === 'chat.done') refresh?.({ keepView: true });
             return;
         }
 
@@ -89,8 +94,16 @@ function setupThreadStream({ threadId = null, messages, busy, pushRow, refresh, 
                 compactKey = '';
                 break;
             }
+            case 'chat.reasoning': {
+                // 思考流:边到边展开;答案一开始输出就自动折起(chat.delta 分支)
+                const row = currentStreaming();
+                if (!row.content) row.reasoningOpen = true;
+                row.reasoning = (row.reasoning || '') + (event.content || '');
+                break;
+            }
             case 'chat.delta': {
                 const row = currentStreaming();
+                if (!row.content && row.reasoningOpen) row.reasoningOpen = false;
                 row.content += event.content || '';
                 break;
             }
@@ -117,7 +130,7 @@ function setupThreadStream({ threadId = null, messages, busy, pushRow, refresh, 
                     clientRow(event.clientId).failed = false;
                 }
                 busy.value = false;
-                refresh?.();
+                refresh?.({ keepView: true }); // 对账刷新:补齐行 id 等服务端事实,不动用户视角
                 break;
             case 'chat.aborted':
                 closeStreaming();

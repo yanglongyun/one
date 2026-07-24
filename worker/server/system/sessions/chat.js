@@ -53,6 +53,10 @@ export async function runChatTurn(hub, threadId, input, signal, { touchChat = tr
                     emit('chat.delta', { content: event.content });
                     return;
                 }
+                if (event.type === 'reasoning') {
+                    emit('chat.reasoning', { content: event.content });
+                    return;
+                }
                 if (event.type === 'usage' && event.usage && Object.keys(event.usage).length) {
                     emit('chat.usage', { usage: event.usage });
                     return;

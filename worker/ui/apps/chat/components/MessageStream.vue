@@ -128,7 +128,15 @@ watch(() => chat.viewSeq, () => {
                 <div v-else-if="block.message.role === 'assistant'" class="msg-ai rise-enter">
                     <span class="ai-mark">AI</span>
                     <div class="grow" style="min-width:0">
-                        <div class="bubble">
+                        <!-- 思考过程:可折叠;思考中自动展开,正文开始后自动折起 -->
+                        <div v-if="block.message.reasoning" class="think">
+                            <button class="think-head" @click="block.message.reasoningOpen = !block.message.reasoningOpen">
+                                <span class="think-chev" :class="{ open: block.message.reasoningOpen }">▸</span>
+                                {{ block.message.streaming && !block.message.content ? '思考中…' : '已思考' }}
+                            </button>
+                            <div v-show="block.message.reasoningOpen" class="think-body">{{ block.message.reasoning }}</div>
+                        </div>
+                        <div v-if="block.message.content || block.message.streaming" class="bubble">
                             <div class="md" v-html="renderMd(block.message.content)"></div>
                         </div>
                         <div v-if="block.message.streaming" class="msg-time" style="color:var(--run)">正在输出…</div>
@@ -258,6 +266,28 @@ watch(() => chat.viewSeq, () => {
     box-shadow: var(--shadow-s);
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+/* 思考过程:折叠块(头部小字,展开为竖线引导的灰字) */
+.think { margin-bottom: 6px; }
+.think-head {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 600; color: var(--ink-3);
+    padding: 3px 8px; border-radius: 8px;
+    transition: background .15s, color .15s;
+}
+.think-head:hover { background: var(--surface-hover); color: var(--ink2); }
+.think-chev { display: inline-block; transition: transform .15s; font-size: 10px; }
+.think-chev.open { transform: rotate(90deg); }
+.think-body {
+    margin: 4px 0 2px 8px;
+    padding: 2px 0 2px 12px;
+    border-left: 2px solid var(--line);
+    font-size: 12.5px; line-height: 1.75;
+    color: var(--ink-3);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 260px; overflow-y: auto;
 }
 .msg-time {
     font-size: 10.5px;

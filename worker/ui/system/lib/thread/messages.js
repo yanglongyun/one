@@ -53,11 +53,14 @@ function renderMessages(raw) {
 
         if (message.role === 'assistant') {
             const text = String(message.content || '').trim();
-            if (text) {
+            const reasoning = String(message.reasoning_content || '').trim();
+            if (text || reasoning) {
                 rows.push({
                     role: 'assistant',
                     _key: mkKey('assistant'),
                     content: text,
+                    reasoning,
+                    reasoningOpen: false,
                     usage: null,
                     streaming: false,
                 });

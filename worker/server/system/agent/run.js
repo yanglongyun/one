@@ -55,6 +55,7 @@ export async function runAgent({
                 await onEvent({ type: 'delta', content: modelEvent.delta });
             } else if (modelEvent.type === 'reasoning') {
                 reasoningText += modelEvent.delta;
+                await onEvent({ type: 'reasoning', content: modelEvent.delta });
             } else if (modelEvent.type === 'tool_call') {
                 requestedToolCalls = modelEvent.calls;
             } else if (modelEvent.type === 'usage') {

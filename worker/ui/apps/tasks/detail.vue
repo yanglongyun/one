@@ -120,7 +120,16 @@ watch(() => route.params.id, (id) => { if (id) load(id); });
 
                         <div v-else-if="block.message.role === 'assistant'" class="step">
                             <span class="node"></span>
-                            <div class="say-text md" v-html="renderMd(block.message.content)"></div>
+                            <div class="say-wrap">
+                                <div v-if="block.message.reasoning" class="think">
+                                    <button class="think-head" @click="block.message.reasoningOpen = !block.message.reasoningOpen">
+                                        <span class="think-chev" :class="{ open: block.message.reasoningOpen }">▸</span>
+                                        {{ block.message.streaming && !block.message.content ? '思考中…' : '已思考' }}
+                                    </button>
+                                    <div v-show="block.message.reasoningOpen" class="think-body">{{ block.message.reasoning }}</div>
+                                </div>
+                                <div v-if="block.message.content || block.message.streaming" class="say-text md" v-html="renderMd(block.message.content)"></div>
+                            </div>
                         </div>
 
                         <div v-else-if="block.message.role === 'system'" class="step sys">
@@ -168,7 +177,30 @@ watch(() => route.params.id, (id) => { if (id) load(id); });
 .step.tool .node { background: var(--ok); }
 .step.tool.run .node { background: var(--run); animation: pulse 1.3s ease-in-out infinite; }
 .step.tool.fail .node { background: var(--bad); }
+.say-wrap { min-width: 0; }
 .say-text { font-size: 13.5px; line-height: 1.8; min-width: 0; }
+
+/* 思考过程折叠块(与对话页同款) */
+.think { margin-bottom: 4px; }
+.think-head {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 600; color: var(--ink-3);
+    padding: 2px 8px; border-radius: 8px;
+    transition: background .15s, color .15s;
+}
+.think-head:hover { background: var(--surface-hover); color: var(--ink2); }
+.think-chev { display: inline-block; transition: transform .15s; font-size: 10px; }
+.think-chev.open { transform: rotate(90deg); }
+.think-body {
+    margin: 4px 0 2px 8px;
+    padding: 2px 0 2px 12px;
+    border-left: 2px solid var(--line);
+    font-size: 12.5px; line-height: 1.75;
+    color: var(--ink-3);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 260px; overflow-y: auto;
+}
 .say-text p { margin: 0 0 .5em; } .say-text p:last-child { margin: 0; }
 .say-text.td-plain { white-space: pre-wrap; word-break: break-word; }
 .say-text.sys-text { font-size: 12px; color: var(--ink-3); }
