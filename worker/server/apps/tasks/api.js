@@ -44,11 +44,6 @@ export default async function tasksApi(request, ctx, { id }) {
             const stopped = await ctx.hub.stopThread(id, '任务已取消');
             if (!stopped.stopped) return Response.json({ error: 'agent is still stopping' }, { status: 409 });
             await repo.cancel(db, id);
-            if (['goal', 'goal_review'].includes(before.origin) && before.origin_id && ['pending', 'running'].includes(before.status)) {
-                await db.prepare(`UPDATE goals SET next_run_at = COALESCE(next_run_at, ?),
-                  last_report = '本轮任务被用户取消,稍后继续推进', updated_at = ?
-                  WHERE id = ? AND status = 'active'`).bind(Date.now() + 60 * 60 * 1000, Date.now(), before.origin_id).run();
-            }
             await ctx.hub.reconcileAlarm();
             const task = await repo.get(db, id);
             await ctx.hub.notifyWeb({ type: 'task.updated', task });

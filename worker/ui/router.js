@@ -11,10 +11,6 @@ const routes = [
     { path: '/chat', name: 'chat', component: () => import('./apps/chat/index.vue') },
     { path: '/tasks', name: 'tasks', component: () => import('./apps/tasks/index.vue') },
     { path: '/tasks/:id', name: 'task-detail', component: () => import('./apps/tasks/detail.vue') },
-    { path: '/schedules', name: 'schedules', component: () => import('./apps/schedules/index.vue') },
-    { path: '/schedules/:id', name: 'schedule-detail', component: () => import('./apps/schedules/detail.vue') },
-    { path: '/goals', name: 'goals', component: () => import('./apps/goals/index.vue') },
-    { path: '/goals/:id', name: 'goal-detail', component: () => import('./apps/goals/detail.vue') },
     { path: '/memories', name: 'memories', component: () => import('./apps/memories/index.vue') },
     { path: '/notes', name: 'notes', component: () => import('./apps/notes/index.vue') },
     { path: '/settings', name: 'settings', component: () => import('./apps/settings/index.vue') },
@@ -27,7 +23,6 @@ const routes = [
     { path: '/devices/:dev/files', name: 'files', component: () => import('./system/views/device/files/index.vue') },
     { path: '/devices/:dev/status', name: 'status', component: () => import('./system/views/device/status/index.vue') },
     { path: '/devices/:dev/terminal', name: 'terminal', component: () => import('./system/views/device/terminal/index.vue') },
-
     { path: '/:pathMatch(.*)*', redirect: '/chat' },
 ];
 

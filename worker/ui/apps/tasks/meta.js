@@ -12,9 +12,6 @@ export const STATUS = {
 // icon 是 system/components/Icon.vue 的图标名;link 为来源详情路由前缀(拼上 origin_id)。
 export const ORIGIN = {
     ai: { label: 'AI 发起', icon: 'robot' },
-    schedule: { label: '日程', icon: 'clock', link: '/schedules/' },
-    goal: { label: '目标', icon: 'goals', link: '/goals/' },
-    goal_review: { label: '目标评估', icon: 'check', link: '/goals/' },
 };
 
 export const statusOf = (s) => STATUS[s] || STATUS.pending;

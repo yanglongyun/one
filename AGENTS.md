@@ -53,7 +53,7 @@ npm run deploy
 - **不写兼容层**:协议、字段或工具名变更时同步修改所有生产端并发布新版本；只保留唯一现行实现。禁止旧名称别名、双路径、历史字段兜底和按版本分支，旧客户端直接淘汰并要求升级。
 - **机密绝不入库**:`wrangler.jsonc` / `.dev.vars` / `config.json` / 数据库备份 / 任何 key 都已 gitignore,别绕过。`AUTH_SECRET` 只走 `wrangler secret`。
 - **数据库无迁移**:`worker/schema.sql` 是唯一真相,改表结构就直接改它,不写迁移脚本。升级前用 `npm run db:backup` 导出备份。
-- **应用即代码**:所有应用(对话/笔记/任务/日程/目标/记忆/设置)都是仓库里的原生代码 —— 服务端 `server/apps/<name>/` + 前端 `ui/apps/<name>/`,在 `registry.js` 和 `router.js` 各注册一行。数据库只存数据,不存代码。
+- **应用即代码**:所有应用(对话/笔记/任务/记忆/设置)都是仓库里的原生代码 —— 服务端 `server/apps/<name>/` + 前端 `ui/apps/<name>/`,在 `registry.js` 和 `router.js` 各注册一行。数据库只存数据,不存代码。
 - **路由**:后端能力全在 `/api/*`;`wrangler.jsonc` 的 `run_worker_first` 就是 `["/api/*"]`,其余路径交给前端 SPA。
 - **风格随上下文**:注释以简体中文为主,命名/习惯向周围代码看齐;一次改动小而聚焦。
 

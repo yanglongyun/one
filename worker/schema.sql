@@ -9,14 +9,14 @@ CREATE TABLE settings (
   value TEXT NOT NULL DEFAULT ''
 );
 
--- ═══════════ 任务(执行单元:ai/schedule/goal/app 四种来源发起,可并行跑)═══════════
+-- ═══════════ 任务(执行单元,可并行跑)═══════════
 CREATE TABLE tasks (
   id           TEXT PRIMARY KEY,
   title        TEXT NOT NULL DEFAULT '',
   prompt       TEXT NOT NULL DEFAULT '',
   status       TEXT NOT NULL DEFAULT 'pending',  -- pending/running/done/failed/aborted/cancelled
-  origin       TEXT NOT NULL DEFAULT 'ai',       -- ai/schedule/goal/goal_review
-  origin_id    TEXT,                             -- 对应 schedules.id 或 goals.id(origin 相应时)
+  origin       TEXT NOT NULL DEFAULT 'ai',
+  origin_id    TEXT,
   response_format TEXT,                          -- 可选:要求最终回复走 OpenAI 兼容 response_format(如 {"type":"json_object"})
   summary      TEXT NOT NULL DEFAULT '',
   created_at   INTEGER NOT NULL,
@@ -64,37 +64,6 @@ CREATE TABLE compactions (
   created_at       INTEGER NOT NULL
 );
 CREATE INDEX idx_compactions_thread ON compactions(thread_id, id);
-
--- ═══════════ 日程(定时定义,到点向 tasks 插一行 origin='schedule')═══════════
-CREATE TABLE schedules (
-  id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  name            TEXT NOT NULL DEFAULT '',
-  prompt          TEXT NOT NULL DEFAULT '',
-  kind            TEXT NOT NULL DEFAULT 'cron',  -- cron/once
-  cron            TEXT NOT NULL DEFAULT '',
-  timezone        TEXT NOT NULL DEFAULT 'UTC',
-  run_at          INTEGER,
-  next_run_at     INTEGER,
-  enabled         INTEGER NOT NULL DEFAULT 1,
-  last_run_at     INTEGER,
-  last_run_minute INTEGER,
-  created_at      INTEGER NOT NULL,
-  updated_at      INTEGER NOT NULL
-);
-CREATE INDEX idx_schedules_due ON schedules(enabled, next_run_at);
-
--- ═══════════ 目标(自调度推进循环:到点开 origin='goal' 任务,系统验收后写回状态与下次时间)═══════════
-CREATE TABLE goals (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  title       TEXT NOT NULL DEFAULT '',
-  prompt      TEXT NOT NULL DEFAULT '',
-  status      TEXT NOT NULL DEFAULT 'active',  -- active/paused/done/abandoned
-  next_run_at INTEGER,                         -- 下次推进时间;NULL = 不排
-  last_report TEXT NOT NULL DEFAULT '',        -- 最近一次推进的自评
-  created_at  INTEGER NOT NULL,
-  updated_at  INTEGER NOT NULL
-);
-CREATE INDEX idx_goals_due ON goals(status, next_run_at);
 
 -- ═══════════ 记忆(长期用户上下文;时间线走呈现层,created_at/updated_at 已够排)═══════════
 CREATE TABLE memories (

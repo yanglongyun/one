@@ -17,45 +17,9 @@ export function insertTask(db, { id, title, prompt, origin, originId, responseFo
     ).bind(id, title, prompt, origin, originId, responseFormat ? JSON.stringify(responseFormat) : null, now);
 }
 
-const taskValues = (task) => [
-    task.id, task.title, task.prompt, task.origin, task.originId,
-    task.responseFormat ? JSON.stringify(task.responseFormat) : null, task.now,
-];
 
-export function insertScheduleTask(db, task, scheduleId, dueAt) {
-    return db.prepare(`
-      INSERT INTO tasks (id,title,prompt,status,origin,origin_id,response_format,created_at)
-      SELECT ?,?,?,'pending',?,?,?,?
-      WHERE EXISTS (
-        SELECT 1 FROM schedules WHERE id = ? AND enabled = 1 AND next_run_at = ?
-      )
-    `).bind(...taskValues(task), scheduleId, dueAt);
-}
 
-export function insertGoalTask(db, task, goalId, dueAt) {
-    return db.prepare(`
-      INSERT INTO tasks (id,title,prompt,status,origin,origin_id,response_format,created_at)
-      SELECT ?,?,?,'pending',?,?,?,?
-      WHERE EXISTS (
-        SELECT 1 FROM goals WHERE id = ? AND status = 'active' AND next_run_at = ?
-      ) AND NOT EXISTS (
-        SELECT 1 FROM tasks
-        WHERE origin IN ('goal','goal_review') AND origin_id = ? AND status IN ('pending','running')
-      )
-    `).bind(...taskValues(task), goalId, dueAt, goalId);
-}
 
-export function insertGoalReviewTask(db, task, workTaskId, goalId) {
-    return db.prepare(`
-      INSERT INTO tasks (id,title,prompt,status,origin,origin_id,response_format,created_at)
-      SELECT ?,?,?,'pending',?,?,?,?
-      WHERE EXISTS (
-        SELECT 1 FROM tasks WHERE id = ? AND origin = 'goal' AND origin_id = ? AND status = 'running'
-      ) AND EXISTS (
-        SELECT 1 FROM goals WHERE id = ? AND status = 'active'
-      )
-    `).bind(...taskValues(task), workTaskId, goalId, goalId);
-}
 
 export async function claimTask(db, id, leaseMs = 30 * 60 * 1000) {
     const now = Date.now();
@@ -86,18 +50,7 @@ export async function taskState(db, id) {
     return db.prepare('SELECT id,title,prompt,status,origin,origin_id,summary,created_at,started_at,finished_at FROM tasks WHERE id = ?').bind(id).first();
 }
 
-export async function recentGoalTasks(db, goalId) {
-    const { results } = await db.prepare(
-        "SELECT origin,status,summary FROM tasks WHERE origin IN ('goal','goal_review') AND origin_id = ? ORDER BY created_at DESC LIMIT 6",
-    ).bind(goalId).all();
-    return results;
-}
 
-export async function hasInflightGoalTask(db, goalId) {
-    return Boolean(await db.prepare(
-        "SELECT 1 FROM tasks WHERE origin IN ('goal','goal_review') AND origin_id = ? AND status IN ('pending','running') LIMIT 1",
-    ).bind(goalId).first());
-}
 
 export async function recoverableTasks(db, now = Date.now()) {
     const { results } = await db.prepare(`

@@ -11,15 +11,13 @@
 //   DO → web+设备: { type:'chat.tool.calls', threadId, calls } 各端执行层自捕获归属自己的工具
 //   设备 → DO:   { type:'chat.tool.result', threadId, id, result } 按 id 兑现 + 转发给 web
 //
-// spawnTask:开一个新 task 并立即跑第一轮,不阻塞发起方。应用、日程、目标共用这一个入口。
+// spawnTask:开一个新 task 并立即跑第一轮,不阻塞发起方。
 import { DurableObject } from 'cloudflare:workers';
 import { makeDispatch } from './dispatch.js';
 import { makePending } from './pending.js';
 import { runChatTurn } from '../sessions/chat.js';
 import { runTaskTurn } from '../sessions/task.js';
 import { createTask } from '../services/tasks.js';
-import { runDueSchedules } from '../services/schedules.js';
-import { runDueGoals } from '../services/goals.js';
 import { recoverTasks } from '../services/tasks.js';
 import { EXECUTOR_PROTOCOL_VERSION, executorHello } from './protocol.js';
 import { verify, verifyPassword } from '../identity/service.js';
@@ -169,27 +167,21 @@ export class OneHub extends DurableObject {
         this.dispatch.toWeb(message);
     }
 
-    // 开一个新 task(状态 pending)并立即起第一轮。origin: ai/schedule/goal。
+    // 开一个新 task(状态 pending)并立即起第一轮。
     async spawnTask({ title, prompt, origin = 'ai', originId = null, responseFormat = null }) {
         return createTask(this.hub(), { title, prompt, origin, originId, responseFormat });
     }
 
     async alarm() {
         await recoverTasks(this.hub(), (id) => this.turns.has(id));
-        await runDueSchedules(this.hub());
-        await runDueGoals(this.hub());
         await this.reconcileAlarm();
     }
 
     async reconcileAlarm() {
         const now = Date.now();
         const row = await this.db.prepare(`
-          SELECT MIN(due_at) AS due_at FROM (
-            SELECT MIN(next_run_at) AS due_at FROM schedules WHERE enabled = 1 AND next_run_at IS NOT NULL
-            UNION ALL SELECT MIN(next_run_at) FROM goals WHERE status = 'active' AND next_run_at IS NOT NULL
-            UNION ALL SELECT MIN(CASE WHEN status = 'pending' THEN ? ELSE lease_until END)
-              FROM tasks WHERE status = 'pending' OR (status = 'running' AND lease_until IS NOT NULL)
-          )
+          SELECT MIN(CASE WHEN status = 'pending' THEN ? ELSE lease_until END) AS due_at
+          FROM tasks WHERE status = 'pending' OR (status = 'running' AND lease_until IS NOT NULL)
         `).bind(now).first();
         const dueAt = Number(row?.due_at);
         if (!Number.isFinite(dueAt) || dueAt <= 0) {

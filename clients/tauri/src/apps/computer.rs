@@ -106,33 +106,35 @@ on appendElement(e, depth)
   set titleText to ""
   set enabledText to ""
 
-  try
-    set roleName to my safeText(role of e)
-  end try
-  try
-    set subroleName to my safeText(subrole of e)
-  end try
-  try
-    set className to my safeText(class of e)
-  end try
-  try
-    set nameText to my safeText(name of e)
-  end try
-  try
-    set valueText to my safeText(value of e)
-  end try
-  try
-    set descText to my safeText(description of e)
-  end try
-  try
-    set helpText to my safeText(help of e)
-  end try
-  try
-    set titleText to my safeText(title of e)
-  end try
-  try
-    set enabledText to my safeText(enabled of e)
-  end try
+  tell application "System Events"
+    try
+      set roleName to my safeText(role of e)
+    end try
+    try
+      set subroleName to my safeText(subrole of e)
+    end try
+    try
+      set className to my safeText(class of e)
+    end try
+    try
+      set nameText to my safeText(name of e)
+    end try
+    try
+      set valueText to my safeText(value of e)
+    end try
+    try
+      set descText to my safeText(description of e)
+    end try
+    try
+      set helpText to my safeText(help of e)
+    end try
+    try
+      set titleText to my safeText(title of e)
+    end try
+    try
+      set enabledText to my safeText(enabled of e)
+    end try
+  end tell
 
   set labelText to my firstText(nameText, titleText, descText, helpText)
   if labelText is not "" or valueText is not "" or roleName is not "" or className is not "" then
@@ -155,12 +157,14 @@ on walk(e, depth)
   global seen, maxItems
   if seen >= maxItems or depth > 8 then return
   my appendElement(e, depth)
+  set kids to {}
   try
-    repeat with child in (UI elements of e)
-      my walk(child, depth + 1)
-      if seen >= maxItems then exit repeat
-    end repeat
+    tell application "System Events" to set kids to UI elements of e
   end try
+  repeat with child in kids
+    my walk(child, depth + 1)
+    if seen >= maxItems then exit repeat
+  end repeat
 end walk
 
 tell application "System Events"
@@ -211,41 +215,47 @@ end safeText
 
 on matchesTarget(e)
   global targetText
-  try
-    if my safeText(name of e) is targetText then return true
-  end try
-  try
-    if my safeText(title of e) is targetText then return true
-  end try
-  try
-    if my safeText(description of e) is targetText then return true
-  end try
-  try
-    if my safeText(help of e) is targetText then return true
-  end try
-  try
-    if my safeText(value of e) is targetText then return true
-  end try
+  tell application "System Events"
+    try
+      if my safeText(name of e) is targetText then return true
+    end try
+    try
+      if my safeText(title of e) is targetText then return true
+    end try
+    try
+      if my safeText(description of e) is targetText then return true
+    end try
+    try
+      if my safeText(help of e) is targetText then return true
+    end try
+    try
+      if my safeText(value of e) is targetText then return true
+    end try
+  end tell
   return false
 end matchesTarget
 
 on clickNamed(e, depth)
   if depth > 8 then return false
   if my matchesTarget(e) then
-    try
-      click e
-      return true
-    end try
-    try
-      perform action "AXPress" of e
-      return true
-    end try
+    tell application "System Events"
+      try
+        click e
+        return true
+      end try
+      try
+        perform action "AXPress" of e
+        return true
+      end try
+    end tell
   end if
+  set kids to {}
   try
-    repeat with child in (UI elements of e)
-      if my clickNamed(child, depth + 1) then return true
-    end repeat
+    tell application "System Events" to set kids to UI elements of e
   end try
+  repeat with child in kids
+    if my clickNamed(child, depth + 1) then return true
+  end repeat
   return false
 end clickNamed
 

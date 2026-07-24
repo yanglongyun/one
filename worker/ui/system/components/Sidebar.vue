@@ -1,6 +1,6 @@
 <script setup>
 // 全局左侧栏(ChatGPT 式),三组:
-//   ① 功能入口 —— 新对话 / 笔记 / 任务 / 日程 / 目标 / 记忆
+//   ① 功能入口 —— 新对话 / 笔记 / 任务 / 记忆
 //   ② 历史对话列表(chat store)
 //   ③ 底部常驻 —— 设置
 // 桌面常驻;窄屏收成抽屉(shell.sidebarOpen 控制,遮罩点击收回)。
@@ -20,8 +20,6 @@ const shell = useShellStore();
 const NAV = [
     { path: '/notes', icon: 'notes', label: '笔记' },
     { path: '/tasks', icon: 'tasks', label: '任务' },
-    { path: '/schedules', icon: 'schedule', label: '日程' },
-    { path: '/goals', icon: 'goals', label: '目标' },
     { path: '/memories', icon: 'memory', label: '记忆' },
 ];
 
